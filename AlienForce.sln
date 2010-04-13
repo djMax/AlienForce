@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities\Utilities.csproj", "{1D1D6920-3CA9-4960-B490-F25F9D63410A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlienForce.Tests", "AlienForce.Tests\AlienForce.Tests.csproj", "{2F6886D9-27E3-42DE-AF75-34BE61B5058D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EBEB32B9-AACA-429C-BA48-762461379AD4}"
+	ProjectSection(SolutionItems) = preProject
+		AlienForce.vsmdi = AlienForce.vsmdi
+		Local.testsettings = Local.testsettings
+		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoSql", "NoSql\NoSql.csproj", "{FC537BA5-3CE8-45F0-97B7-115BC0B1C5B6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{E728B694-C39E-4048-A544-6C1B9E243D7F}"
+	ProjectSection(SolutionItems) = preProject
+		bin\BLToolkit.3.dll = bin\BLToolkit.3.dll
+		bin\Exceptioneer.WindowsFormsClient.dll = bin\Exceptioneer.WindowsFormsClient.dll
+		bin\log4net.dll = bin\log4net.dll
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = AlienForce.vsmdi
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D1D6920-3CA9-4960-B490-F25F9D63410A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D1D6920-3CA9-4960-B490-F25F9D63410A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D1D6920-3CA9-4960-B490-F25F9D63410A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D1D6920-3CA9-4960-B490-F25F9D63410A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F6886D9-27E3-42DE-AF75-34BE61B5058D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F6886D9-27E3-42DE-AF75-34BE61B5058D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F6886D9-27E3-42DE-AF75-34BE61B5058D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F6886D9-27E3-42DE-AF75-34BE61B5058D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC537BA5-3CE8-45F0-97B7-115BC0B1C5B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC537BA5-3CE8-45F0-97B7-115BC0B1C5B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC537BA5-3CE8-45F0-97B7-115BC0B1C5B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC537BA5-3CE8-45F0-97B7-115BC0B1C5B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
