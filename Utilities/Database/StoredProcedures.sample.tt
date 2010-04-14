@@ -1,0 +1,181 @@
+﻿<#@ template debug="false" hostSpecific="true" language="C#" #>
+<#@ assembly name="%devroot%\AlienForce\bin\AlienForce.Utilities.dll" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+
+	var Namespace = "YourClassNamespace";
+	var ConnectionString = "Connection_String_Name_From_Machine_Config_Or_Elsewhere";
+	var DatabaseName = "Name_of_Database_On_SQL_Server";
+	
+	//this is a list of procs you don't want generated
+    var ExcludeProcs = new System.Collections.Generic.List<string>(new string[]{
+    });
+
+	var className = System.IO.Path.GetFileNameWithoutExtension(Host.TemplateFile);
+#>
+using System;
+using System.Collections.Generic;
+
+using BLToolkit.Data;
+using BLToolkit.Reflection;
+using BLToolkit.DataAccess;
+
+<# 
+var metadata = new AlienForce.Utilities.Database.SqlServerMetadata(ConnectionString, DatabaseName);
+
+var sps = metadata.GetStoredProcedures();
+var madeClasses = new Dictionary<string,int>();
+sps.Sort((x,y) => x.Name.CompareTo(y.Name));
+#>
+// Auto-generated from <#= Host.TemplateFile #>
+namespace <#= Namespace #>
+{
+	public abstract partial class <#= className #> : BLToolkit.DataAccess.DataAccessor
+	{
+		public static <#= className #> GetInstance()
+		{
+			return DataAccessor.CreateInstance<<#= className #>>();
+		}
+		
+		public static <#= className#> GetInstance(DbManager db)
+		{
+			return DataAccessor.CreateInstance<<#= className #>>(db);
+		}
+		
+		protected override DbManager CreateDbManager()
+		{
+    		return new DbManager("<#= ConnectionString #>");
+		}
+	
+<#  foreach(var sp in sps)
+{
+	#>
+		#region <#=sp.Name#>
+<#
+	if (!sp.Metadata.IsMultiResult) {#>
+		[SprocName("<#=sp.Name#>")] <#= sp.Metadata.Attributes ?? String.Empty #>		
+		public abstract <#= sp.Metadata.ReturnType ?? "void" #> <#= sp.CleanName #>
+		(<#
+		int argNum = 0;
+		foreach (var parm in sp.Parameters)
+		{
+			if (parm.IsInput || parm.IsOutput)
+			{
+			#><#= argNum == 0 ? String.Empty : "," #>
+			<#=parm.IsOutput ? (parm.IsInput ? "ref DbNullable<" : "out ") : "DbNullable<"#><#=parm.SysType  #><#= parm.IsInput ? ">" : String.Empty #> @<#= parm.Name #><#
+				argNum++;
+			}
+		}#>
+
+		);
+		
+<# 	}
+	else
+	{
+		// If we need to declare the multiresult class, do so.  Only do it once per file.
+		if (!sp.Metadata.DontMakeClass && !madeClasses.ContainsKey(sp.Metadata.ReturnType))
+		{
+			madeClasses[sp.Metadata.ReturnType] = 1;
+			#>
+		public class <#= sp.Metadata.ReturnType #>
+		{ 
+<#
+			foreach (var rset in sp.Metadata.MultiResults)
+			{ #>
+			public <#= rset.Multiple ? "List<" : String.Empty #><#= rset.TypeName #><#= rset.Multiple ? ">" : String.Empty#> <#= rset.PropertyName #>;
+<#			}
+#>		}
+		
+<#		}
+		// First output a protected method to call the proc and return a data reader
+		#>
+		[SprocName("<#=sp.Name#>")] <#= sp.Metadata.Attributes ?? String.Empty #>		
+		protected abstract System.Data.IDataReader <#= sp.CleanName #>_Internal
+		(
+			DbManager BLToolkitDbManager, <#
+		int argNum = 0;
+		foreach (var parm in sp.Parameters)
+		{
+			if (parm.IsInput)
+			{
+			#><#= argNum == 0 ? String.Empty : "," #>
+			DbNullable<<#=parm.SysType  #>> @<#= parm.Name #><#
+			argNum++;
+			}
+		}#>
+
+		);
+<# 
+		// Now a public method to wrap the protected in a custom mapping function
+		#>
+		
+		public <#= sp.Metadata.ReturnType #> <#= sp.CleanName #>
+		(<#
+		argNum = 0;
+		foreach (var parm in sp.Parameters)
+		{
+			if (parm.IsInput)
+			{
+			#><#= argNum == 0 ? String.Empty : "," #>
+			DbNullable<<#=parm.SysType  #>> @<#= parm.Name #><#
+			argNum++;
+			}
+		}#>
+		
+		)
+		{
+			var BLToolkitresult = new <#= sp.Metadata.ReturnType #>();
+			using (var BLToolkitDbManager = CreateDbManager())
+			{
+				using (var BLToolkitDataReader = <#= sp.CleanName #>_Internal(BLToolkitDbManager, <#
+
+		argNum = 0;
+		foreach (var parm in sp.Parameters)
+		{
+			if (parm.IsInput)
+			{
+			#><#= argNum == 0 ? String.Empty : "," #> @<#= parm.Name #><#
+			argNum++;
+			}
+		}
+		
+#>))
+				{
+<#
+	// Iterate through the results sets reading them if available.
+	int mrSpot = 0;
+	foreach (var mr in sp.Metadata.MultiResults)
+	{
+#>			// Read <#= mr.Multiple ? "zero or more" : "zero or one" #> <#= mr.TypeName #> into <#=mr.PropertyName#>
+<#		if (mrSpot != 0) { 
+#>			if (BLToolkitDataReader.NextResult())
+					{
+		<# } else { #>	<# } 
+		if (!mr.Multiple) { 
+#>				if (BLToolkitDataReader.Read())
+					{
+						BLToolkitresult.<#= mr.PropertyName #> = BLToolkitDbManager.MappingSchema.MapDataReaderToObject<<#= mr.TypeName #>>(BLToolkitDataReader);
+					}
+		<# } else { #>
+				BLToolkitresult.<#= mr.PropertyName #> = BLToolkitDbManager.MappingSchema.MapDataReaderToList<<#= mr.TypeName#>>(BLToolkitDataReader);
+		<# } #>
+<# 		if (mrSpot != 0) { #>				}
+<#
+		}
+		mrSpot++;
+	}
+#>
+				
+				}
+			}
+			return BLToolkitresult;
+		}
+<#	} #>
+		#endregion
+	
+<# 
+} #>
+
+	}
+}

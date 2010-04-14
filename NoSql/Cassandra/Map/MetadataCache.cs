@@ -37,6 +37,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 			if (ceAtt != null)
 			{
 				info.HasSuperColumnId = ceAtt.HasSuperColumnId;
+				info.DefaultColumnFamily = ceAtt.DefaultColumnFamily;
+				info.DefaultKeyspace = ceAtt.DefaultKeyspace;
 			}
 
 			// Rowkey type is it's own thing
@@ -50,6 +52,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 				throw new InvalidCastException("Classes used for Cassandra entities must derive from CassandraEntity at some point in their hierarchy");
 			}
 			info.RowKeyType = baseType.GetGenericArguments()[0];
+			info.WithRowKey = t.GetConstructor(new Type[] { info.RowKeyType });
+			info.WithRowKeyAndSuperColumnName = t.GetConstructor(new Type[] { info.RowKeyType, typeof(byte[]) });
 
 			foreach (MemberInfo mi in GetRelevant(t))
 			{
@@ -272,9 +276,14 @@ namespace AlienForce.NoSql.Cassandra.Map
 		internal class Metadata
 		{
 			public Type RowKeyType;
+			public string DefaultColumnFamily;
+			public string DefaultKeyspace;
 			public bool HasSuperColumnId;
 			public Dictionary<byte[], CassandraMember> Columns = null;
 			public Dictionary<byte[], Dictionary<byte[], CassandraMember>> Super = null;
+
+			public ConstructorInfo WithRowKey;
+			public ConstructorInfo WithRowKeyAndSuperColumnName;
 		}
 		#endregion
 	

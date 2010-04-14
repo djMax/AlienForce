@@ -63,6 +63,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		{
 			if (_Loaded) { return false; }
 			_V = c.SelectByRowKey<ValueType>(RowKeyString);
+			_Loaded = true;
 			return true;
 		}
 

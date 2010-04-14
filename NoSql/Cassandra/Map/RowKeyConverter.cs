@@ -26,18 +26,18 @@ namespace AlienForce.NoSql.Cassandra.Map
 		}
 
 		/// <summary>
-		/// No need to waste space with two = at the end.
+		/// No need to waste space with special characters.
 		/// </summary>
 		/// <param name="g"></param>
 		/// <returns></returns>
 		static string ToString(Guid g)
 		{
-			return Convert.ToBase64String(g.ToByteArray()).TrimEnd('=');
+			return g.ToString("N");
 		}
 
 		static Guid ToGuid(string g)
 		{
-			return new Guid(Convert.FromBase64String(g + new String('=', 2)));
+			return new Guid(g);
 		}
 
 		/// <summary>

@@ -59,17 +59,28 @@ namespace AlienForce.NoSql.Cassandra.Map
 			}
 		}
 
-		public virtual void AddChanges(BatchMutateRequest request, string columnFamily)
+		public void AddChanges(BatchMutateRequest request, string columnFamily)
+		{
+			AddChanges(request, columnFamily, null);
+		}
+
+		public virtual void AddChanges(BatchMutateRequest request, string columnFamily, Func<MemberInfo,bool> shouldSave)
 		{
 			var md = MetadataCache.EnsureMetadata(this.GetType());
+
 			if (md.HasSuperColumnId)
 			{
+				// In this case, the super column id is some sort of version identifier or instance identifier, so all the columns are 
+				// actually inside the SuperColumnId
 				foreach (var memberInfo in md.Columns.Values)
 				{
-					byte[] o = memberInfo.GetValueFromObject(this);
-					if (o != null)
+					if (shouldSave == null || shouldSave(memberInfo.Member))
 					{
-						request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(SuperColumnId, memberInfo.CassandraName, o));
+						byte[] o = memberInfo.GetValueFromObject(this);
+						if (o != null)
+						{
+							request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(SuperColumnId, memberInfo.CassandraName, o));
+						}
 					}
 				}
 			}
@@ -77,10 +88,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 			{
 				foreach (var memberInfo in md.Columns.Values)
 				{
-					byte[] o = memberInfo.GetValueFromObject(this);
-					if (o != null)
+					if (shouldSave == null || shouldSave(memberInfo.Member))
 					{
-						request.AddMutation(columnFamily, RowKeyString, request.GetColumnMutation(memberInfo.CassandraName, o));
+						byte[] o = memberInfo.GetValueFromObject(this);
+						if (o != null)
+						{
+							request.AddMutation(columnFamily, RowKeyString, request.GetColumnMutation(memberInfo.CassandraName, o));
+						}
 					}
 				}
 			}
@@ -90,10 +104,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					foreach (var columnInfo in superColumnInfo.Values)
 					{
-						byte[] o = columnInfo.GetValueFromObject(this);
-						if (o != null)
+						if (shouldSave == null || shouldSave(columnInfo.Member))
 						{
-							request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+							byte[] o = columnInfo.GetValueFromObject(this);
+							if (o != null)
+							{
+								request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+							}
 						}
 					}
 				}

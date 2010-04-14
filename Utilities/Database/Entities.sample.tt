@@ -1,0 +1,56 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="%devroot%\AlienForce\bin\AlienForce.Utilities.dll" #>
+<#@ output extension=".cs" #>
+<#
+
+	var Namespace = "YourClassNamespace";
+	var ConnectionString = "Connection_String_Name_From_Machine_Config_Or_Elsewhere";
+	var DatabaseName = "Name_of_Database_On_SQL_Server";
+	
+	//this is a list of tables you don't want generated
+    var ExcludeTables = new System.Collections.Generic.List<string>(new string[]{
+    "sysdiagrams",
+    "BuildVersion",
+    });
+
+#>
+using System;
+using BLToolkit.DataAccess;
+
+namespace <#= Namespace #>
+{
+<# 
+var metadata = new AlienForce.Utilities.Database.SqlServerMetadata(ConnectionString, DatabaseName);
+
+var tables = metadata.GetTables();
+tables.Sort((x,y) => x.Name.CompareTo(y.Name));
+foreach (var tbl in tables)
+{
+	if(!ExcludeTables.Contains(tbl.Name))
+	{
+	#>
+	/*==========================================*/
+	/* <#= tbl.Name #>
+	/*==========================================*/	
+	public partial class <#=tbl.CleanName#> : I<#= tbl.CleanName #>
+	{
+<# foreach (var tc in tbl.Columns) { 
+	if (tc.AutoIncrement || tc.IsPrimaryKey) { // TODO this should say "Am I the PK?"
+#>		[PrimaryKey, NonUpdatable]
+<# 	} #>
+		public <#= tc.SysType #> <#= tc.CleanName #> { get; set; }
+<# } #>
+	}
+
+	public interface I<#= tbl.CleanName #>
+	{
+<# foreach (var tc in tbl.Columns) { 
+#>		<#= tc.SysType #> <#= tc.CleanName #> { get; }
+<# } #>
+	}
+	
+<#  
+	}
+}
+#>
+}
