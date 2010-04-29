@@ -36,7 +36,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		
 		public RowKeyType RowKey 
 		{
-			get { return (RowKeyType)_RowKey; }
+			get { return _RowKey != null ? ((RowKeyType)_RowKey) : default(RowKeyType); }
 			set { _RowKey = value; }
 		}
 

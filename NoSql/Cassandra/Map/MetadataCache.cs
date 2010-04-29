@@ -62,7 +62,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 				var att = GetAttribute<CassandraColumnAttribute>(mi);
 				if (att != null)
 				{
-					var memberInfo = new CassandraMember(mi, att.SuperColumnNameBytes, att.ColumnNameBytes, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+					var cname = att.ColumnNameBytes ?? mi.Name.ToNetwork();
+					var memberInfo = new CassandraMember(mi, att.SuperColumnNameBytes, cname, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
 					if (att.SuperColumnNameBytes != null)
 					{
 						if (info.HasSuperColumnId) { throw new InvalidOperationException("You cannot assign a field or property a super column name in an entity that uses super column names for identifiers."); }
@@ -72,12 +73,12 @@ namespace AlienForce.NoSql.Cassandra.Map
 						{
 							info.Super[att.SuperColumnNameBytes] = cInfo = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default);
 						}
-						cInfo[att.ColumnNameBytes] = memberInfo;
+						cInfo[cname] = memberInfo;
 					}
 					else
 					{
 						if (info.Columns == null) { info.Columns = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default); }
-						info.Columns[att.ColumnNameBytes ?? mi.Name.ToNetwork()] = new CassandraMember(mi, null, att.ColumnNameBytes, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+						info.Columns[cname] = new CassandraMember(mi, null, cname, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
 					}
 				}
 				else

@@ -56,6 +56,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 			_Converters[typeof(decimal)] = DecimalConverter.Default;
 			_Converters[typeof(short)] = ShortConverter.Default;
 			_Converters[typeof(byte)] = ByteConverter.Default;
+			_Converters[typeof(DateTime)] = DateTimeConverter.Default;
 		}
 
 		public sealed class NullConverter : IByteConverter
@@ -63,6 +64,28 @@ namespace AlienForce.NoSql.Cassandra.Map
 			public static NullConverter Default = new NullConverter();
 			public byte[] ToByteArray(object o) { return (byte[])o; }
 			public object ToObject(byte[] b) { return b; }
+		}
+
+		public sealed class DateTimeConverter : IByteConverter
+		{
+			public static DateTimeConverter Default = new DateTimeConverter();
+			public byte[] ToByteArray(object o) 
+			{
+				if (o == null) { return null; }
+				if (o is DateTime)
+				{
+					DateTime dt = (DateTime)o;
+					if (dt == default(DateTime))
+					{
+						return null;
+					}
+				}
+				return LongConverter.Default.ToByteArray(((DateTime)o).Ticks); 
+			}
+			public object ToObject(byte[] b) 
+			{
+				return b != null ? new DateTime((long)LongConverter.Default.ToObject(b)) : default(DateTime); 
+			}
 		}
 
 		public sealed class NullableTypeConverter : IByteConverter
@@ -76,11 +99,6 @@ namespace AlienForce.NoSql.Cassandra.Map
 
 			public byte[] ToByteArray(object o) { return o != null ? BaseConverter.ToByteArray(o) : null; }
 			public object ToObject(byte[] b) { return b != null ? BaseConverter.ToObject(b) : null; }
-
-			public static IByteConverter NullableInt = new NullableTypeConverter(IntConverter.Default);
-			public static IByteConverter NullableLong = new NullableTypeConverter(LongConverter.Default);
-			public static IByteConverter NullableShort = new NullableTypeConverter(ShortConverter.Default);
-			public static IByteConverter NullableDecimal = new NullableTypeConverter(DecimalConverter.Default);
 		}
 
 		public sealed class StringConverter : IByteConverter
