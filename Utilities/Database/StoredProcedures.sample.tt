@@ -1,5 +1,5 @@
 ﻿<#@ template debug="false" hostSpecific="true" language="C#" #>
-<#@ assembly name="%devroot%\AlienForce\bin\AlienForce.Utilities.dll" #>
+<#@ assembly name="%devdir%\AlienForce\bin\AlienForce.Utilities.dll" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#

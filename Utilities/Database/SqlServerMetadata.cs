@@ -45,6 +45,7 @@ namespace AlienForce.Utilities.Database
 					break;
 				case "smalldatetime":
 				case "datetime":
+				case "date":
 					sysType = isNullable ? "DateTime?" : "DateTime";
 					break;
 				case "float":
