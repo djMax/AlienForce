@@ -79,6 +79,12 @@ namespace AlienForce.Utilities.Security
 			XmlConfigurationSection xcs = (XmlConfigurationSection)c.GetSection("PrivateStore");
 			if (xcs != null)
 			{
+				if (xcs.OriginalNode != null && xcs.SatelliteFileIsProtected)
+				{
+					xcs.SatelliteFileIsProtected = false;
+					xcs.SectionInformation.ForceSave = true;
+					c.Save();
+				}
 				if (xcs.SectionInformation.IsProtected)
 				{
 					xcs.SectionInformation.UnprotectSection();
@@ -100,6 +106,12 @@ namespace AlienForce.Utilities.Security
 			XmlConfigurationSection xcs = (XmlConfigurationSection)c.GetSection("PrivateStore");
 			if (xcs != null)
 			{
+				if (xcs.OriginalNode != null && !xcs.SatelliteFileIsProtected)
+				{
+					xcs.SatelliteFileIsProtected = true;
+					xcs.SectionInformation.ForceSave = true;
+					c.Save();
+				}
 				if (xcs.SectionInformation.IsProtected)
 				{
 					xcs.SectionInformation.UnprotectSection();
@@ -124,6 +136,11 @@ namespace AlienForce.Utilities.Security
 				return null;
 			}
 			var exNode = xcs.Node.SelectSingleNode(XmlConvert.EncodeName(key));
+			// Try to see if this was the satellite file, and if so check the original file for the key
+			if (exNode == null && xcs.OriginalNode != null)
+			{
+				exNode = xcs.OriginalNode.SelectSingleNode(XmlConvert.EncodeName(key));
+			}
 			if (exNode != null)
 			{
 				return exNode.InnerText;

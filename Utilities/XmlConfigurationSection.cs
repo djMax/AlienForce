@@ -1,8 +1,9 @@
-﻿using System.Xml;
+﻿using System;
 using System.Configuration;
-using System.Xml.XPath;
-using System;
 using System.IO;
+using System.Text;
+using System.Xml;
+using System.Security.Cryptography;
 
 namespace AlienForce.Utilities
 {
@@ -20,6 +21,7 @@ namespace AlienForce.Utilities
 	public class XmlConfigurationSection : ConfigurationSection
 	{
 		private XmlNode _Node;
+		private XmlNode _OriginalNode;
 
 		/// <summary>
 		/// Default constructor for the runtime.  Must call Deserialize methods before this is useful.
@@ -47,6 +49,26 @@ namespace AlienForce.Utilities
 		}
 
 		/// <summary>
+		/// If the core config has a "file=" attribute, we will fetch that file and set the Node
+		/// to be the DocumentElement of that file.  If you do some fancy inheritance stuff,
+		/// you can get to the original node in the config via this property.
+		/// </summary>
+		public XmlNode OriginalNode
+		{
+			get
+			{
+				return _OriginalNode;
+			}
+		}
+
+		/// <summary>
+		/// If true, and a secondary file as specified in the "file" attribute of the primary config file 
+		/// sections root node (i.e. the section this handler is registered for), we will use machine
+		/// protected data storage for the satellite file.
+		/// </summary>
+		public bool SatelliteFileIsProtected { get; set; }
+
+		/// <summary>
 		/// Retrieves the Xml Node
 		/// </summary>
 		/// <returns></returns>
@@ -64,6 +86,26 @@ namespace AlienForce.Utilities
 		{
 			XmlDocument xd = new XmlDocument();
 			_Node = xd.ReadNode(reader);
+			if (_Node.Attributes["file"] != null)
+			{
+				FileInfo fi = new FileInfo(Path.Combine(Path.GetDirectoryName(this.CurrentConfiguration.FilePath), _Node.Attributes["file"].Value));
+				if (fi.Exists)
+				{
+					_OriginalNode = Node;
+					var xdr = new XmlDocument();
+					if (_Node.Attributes["protected"] != null && _Node.Attributes["protected"].Value.ToLower() == "true")
+					{
+						SatelliteFileIsProtected = true;
+						xdr.LoadXml(Encoding.UTF8.GetString(ProtectedData.Unprotect(File.ReadAllBytes(fi.FullName), Encoding.UTF8.GetBytes(_Node.Name), DataProtectionScope.LocalMachine)));
+					}
+					else
+					{
+						SatelliteFileIsProtected = false;
+						xdr.Load(fi.FullName);
+					}
+					_Node = xdr.DocumentElement;
+				}
+			}
 		}
 
 		/// <summary>
@@ -94,14 +136,27 @@ namespace AlienForce.Utilities
 		/// true if any data was actually serialized; otherwise, false.
 		/// </returns>
 		protected override bool SerializeToXmlElement(XmlWriter writer, string elementName)
-		{		
-			if (Node != null)
+		{
+			var whichNode = _OriginalNode ?? _Node;
+			if (whichNode != null)
 			{
-				if (elementName != _Node.Name)
+				if (elementName != whichNode.Name)
 				{
-					throw new InvalidOperationException(String.Format("An attempt was made to save XmlConfigurationSection {0} to section {1}.", _Node.Name, elementName));
+					throw new InvalidOperationException(String.Format("An attempt was made to save XmlConfigurationSection {0} to section {1}.", whichNode.Name, elementName));
 				}
-				Node.WriteTo(writer);
+				whichNode.WriteTo(writer);
+				if (_OriginalNode != null)
+				{
+					FileInfo fi = new FileInfo(Path.Combine(Path.GetDirectoryName(this.CurrentConfiguration.FilePath), _OriginalNode.Attributes["file"].Value));
+					if (SatelliteFileIsProtected)
+					{
+						File.WriteAllBytes(fi.FullName, ProtectedData.Protect(Encoding.UTF8.GetBytes(_Node.OwnerDocument.OuterXml), Encoding.UTF8.GetBytes(_Node.Name), DataProtectionScope.LocalMachine));
+					}
+					else
+					{
+						_Node.OwnerDocument.Save(fi.FullName);
+					}
+				}
 				return true;
 			}
 			return false;
