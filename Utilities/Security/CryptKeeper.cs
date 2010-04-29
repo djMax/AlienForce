@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 namespace AlienForce.Utilities.Security
 {
 	/// <summary>
-	/// Symmetric encryption (AES[CBC]+HMAC) class. NOT THREAD SAFE.  Lock it or keep it single threaded.
+	/// Symmetric encryption (AES[CBC]+HMAC) class. NOT THREAD SAFE for encryption (signing ok).  Lock it or keep it single threaded.
 	/// 
 	/// Encryption Format: HMACSHA256 Hash, IV, CipherText
 	/// </summary>
