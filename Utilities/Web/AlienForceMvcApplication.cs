@@ -28,6 +28,7 @@ namespace AlienForce.Utilities.Web
 
 		protected virtual void Application_Start()
 		{
+			Logging.LogFramework.Framework.Initialize();
 			AreaRegistration.RegisterAllAreas();
 			RegisterRoutes(RouteTable.Routes);
 
