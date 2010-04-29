@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using AlienForce.NoSql.Cassandra;
 using System.Reflection;
+using Apache.Cassandra060;
 
 namespace AlienForce.NoSql.Cassandra.Map
 {

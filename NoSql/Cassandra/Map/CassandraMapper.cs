@@ -5,12 +5,13 @@ using System.Text;
 using AlienForce.NoSql.Cassandra;
 using System.Reflection;
 using System.Linq.Expressions;
+using Apache.Cassandra060;
 
 namespace AlienForce.NoSql.Cassandra.Map
 {
-	public static class CassandraMapper<T> where T : ICassandraEntity, new()
+	public static class CassandraMapper
 	{
-		public static T Map(string rowKey, List<ColumnOrSuperColumn> record)
+		public static T Map<T>(string rowKey, List<ColumnOrSuperColumn> record) where T : ICassandraEntity, new()
 		{
 			var md = MetadataCache.EnsureMetadata(typeof(T));
 			if (record != null && record.Count > 0)
@@ -37,14 +38,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// </summary>
 		/// <param name="record"></param>
 		/// <returns></returns>
-		public static List<T> MapMultiple(IEnumerable<ColumnOrSuperColumn> records)
+		public static List<T> MapMultiple<T>(IEnumerable<ColumnOrSuperColumn> records) where T : ICassandraEntity, new()
 		{
 			return new List<T>();
 		}
-	}
 
-	public static class CassandraMapperExtensions
-	{
 		/// <summary>
 		/// Figure out the row key from the type, return all columns
 		/// </summary>
@@ -71,9 +69,9 @@ namespace AlienForce.NoSql.Cassandra.Map
 				md.DefaultKeyspace, 
 				rowKey, 
 				new ColumnParent() { Column_family = md.DefaultColumnFamily }, 
-				SlicePredicate.Everything,
+				c.SlicePredicateAll(),
 				ConsistencyLevel.ONE);
-			return CassandraMapper<T>.Map(rowKey, rec);
+			return CassandraMapper.Map<T>(rowKey, rec);
 		}
 
 		/// <summary>
@@ -91,9 +89,9 @@ namespace AlienForce.NoSql.Cassandra.Map
 				md.DefaultKeyspace,
 				rowKey,
 				new ColumnParent() { Column_family = md.DefaultColumnFamily, Super_column = super },
-				SlicePredicate.Everything,
+				c.SlicePredicateAll(),
 				ConsistencyLevel.ONE);
-			return CassandraMapper<T>.Map(rowKey, rec);
+			return CassandraMapper.Map<T>(rowKey, rec);
 		}
 
 		/// <summary>
@@ -171,7 +169,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 				// Now iterate over the map of objects needing saves and build batch mutate requests
 				foreach (var kvsave in saves)
 				{
-					var md = MetadataCache.EnsureMetadata(kvsave.Value.GetType());
+					var md = MetadataCache.EnsureMetadata(kvsave.Key.GetType());
 					BatchMutateRequest br;
 					if (!keyspaces.TryGetValue(md.DefaultKeyspace, out br))
 					{

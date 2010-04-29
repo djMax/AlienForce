@@ -11,7 +11,7 @@ namespace AlienForce.NoSql.Cassandra
 	/// Placeholder for a proper connection pool.  Should check it back into the pool rather than closing
 	/// once there is a real pool.
 	/// </summary>
-	public class PooledClient : Cassandra.Client, IDisposable
+	public class PooledClient : Apache.Cassandra060.Cassandra.Client, IDisposable
 	{
 		private TSocket _Transport;
 

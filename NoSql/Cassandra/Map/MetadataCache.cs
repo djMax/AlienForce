@@ -5,6 +5,7 @@ using System.Text;
 using System.Reflection;
 using AlienForce.Utilities.Collections;
 using System.Drawing;
+using Apache.Cassandra060;
 
 namespace AlienForce.NoSql.Cassandra.Map
 {
@@ -76,7 +77,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 					else
 					{
 						if (info.Columns == null) { info.Columns = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default); }
-						info.Columns[att.ColumnNameBytes ?? mi.Name.ToCassandra()] = new CassandraMember(mi, null, att.ColumnNameBytes, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+						info.Columns[att.ColumnNameBytes ?? mi.Name.ToNetwork()] = new CassandraMember(mi, null, att.ColumnNameBytes, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
 					}
 				}
 				else
@@ -89,7 +90,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 						{
 							rowRefType = GetMemberType(mi).GetGenericArguments()[0];
 						}
-						var memberInfo = new CassandraMember(mi, refAtt.SuperColumnNameBytes, refAtt.ColumnNameBytes ?? mi.Name.ToCassandra(), refAtt, rowRefType);
+						var memberInfo = new CassandraMember(mi, refAtt.SuperColumnNameBytes, refAtt.ColumnNameBytes ?? mi.Name.ToNetwork(), refAtt, rowRefType);
 						if (refAtt.SuperColumnNameBytes == null)
 						{
 							if (info.Columns == null) { info.Columns = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default); }
@@ -119,43 +120,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 			{
 				return (IByteConverter)converterType.GetConstructor(Type.EmptyTypes).Invoke(null);
 			}
-			if (destinationType == typeof(string))
+
+			IByteConverter c = StandardConverters.GetConverter(destinationType);
+			if (c == null)
 			{
-				return StandardConverters.StringConverter.Default;
+				throw new InvalidCastException(String.Format("There is no converter specified for {0}.{1} and no default converters are available for {2}.", baseType.Name, propOrFieldName, destinationType.Name));
 			}
-			else if (destinationType == typeof(int))
-			{
-				return StandardConverters.IntConverter.Default;
-			}
-			else if (destinationType == typeof(long))
-			{
-				return StandardConverters.LongConverter.Default;
-			}
-			else if (destinationType == typeof(byte[]))
-			{
-				return StandardConverters.NullConverter.Default;
-			}
-			else if (destinationType == typeof(Bitmap))
-			{
-				return StandardConverters.BitmapConverter.Default;
-			}
-			else if (destinationType == typeof(decimal))
-			{
-				return StandardConverters.DecimalConverter.Default;
-			}
-			else if (destinationType == typeof(short))
-			{
-				return StandardConverters.ShortConverter.Default;
-			}
-			else if (destinationType == typeof(byte))
-			{
-				return StandardConverters.ByteConverter.Default;
-			}
-			else if (destinationType.IsEnum)
-			{
-				return GetConverter(destinationType.BaseType, null, baseType, propOrFieldName);
-			}
-			throw new InvalidCastException(String.Format("There is no converter specified for {0}.{1} and no default converters are available for {2}.", baseType.Name, propOrFieldName, destinationType.Name));
+			return c;
 		}
 
 		static T GetAttribute<T>(MemberInfo p)

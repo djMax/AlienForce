@@ -6,6 +6,7 @@ using System.Reflection;
 using AlienForce.NoSql.Cassandra;
 using AlienForce.Utilities.Collections;
 using System.Drawing;
+using Apache.Cassandra060;
 
 namespace AlienForce.NoSql.Cassandra.Map
 {
@@ -84,7 +85,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 					}
 				}
 			}
-			if (md.Columns != null)
+			else if (md.Columns != null)
 			{
 				foreach (var memberInfo in md.Columns.Values)
 				{
@@ -98,7 +99,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 					}
 				}
 			}
-			if (md.Super != null)
+			else if (md.Super != null)
 			{
 				foreach (var superColumnInfo in md.Super.Values)
 				{

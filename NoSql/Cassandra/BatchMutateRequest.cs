@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Apache.Cassandra060;
 
 namespace AlienForce.NoSql.Cassandra
 {

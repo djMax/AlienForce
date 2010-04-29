@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>AlienForce.NoSql</RootNamespace>
     <AssemblyName>AlienForce.NoSql</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Apache.Cassandra060">
+      <HintPath>..\bin\Apache.Cassandra060.dll</HintPath>
+    </Reference>
     <Reference Include="BLToolkit.3">
       <HintPath>..\bin\BLToolkit.3.dll</HintPath>
     </Reference>
@@ -42,25 +45,13 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="Thrift">
+      <HintPath>..\bin\Thrift.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cassandra\AlienForceExtensions.cs" />
-    <Compile Include="Cassandra\AuthenticationException.cs" />
-    <Compile Include="Cassandra\AuthenticationRequest.cs" />
-    <Compile Include="Cassandra\AuthorizationException.cs" />
     <Compile Include="Cassandra\BatchMutateRequest.cs" />
-    <Compile Include="Cassandra\Cassandra.cs" />
-    <Compile Include="Cassandra\Collections\THashSet.cs" />
-    <Compile Include="Cassandra\Column.cs" />
-    <Compile Include="Cassandra\ColumnOrSuperColumn.cs" />
-    <Compile Include="Cassandra\ColumnParent.cs" />
-    <Compile Include="Cassandra\ColumnPath.cs" />
-    <Compile Include="Cassandra\ConsistencyLevel.cs" />
-    <Compile Include="Cassandra\Constants.cs" />
-    <Compile Include="Cassandra\Deletion.cs" />
-    <Compile Include="Cassandra\InvalidRequestException.cs" />
-    <Compile Include="Cassandra\KeyRange.cs" />
-    <Compile Include="Cassandra\KeySlice.cs" />
     <Compile Include="Cassandra\Map\CassandraColumnAttribute.cs" />
     <Compile Include="Cassandra\Map\CassandraEntity.cs" />
     <Compile Include="Cassandra\Map\CassandraEntityAttribute.cs" />
@@ -73,44 +64,10 @@
     <Compile Include="Cassandra\Map\MetadataCache.cs" />
     <Compile Include="Cassandra\Map\RowKeyConverter.cs" />
     <Compile Include="Cassandra\Map\StandardConverters.cs" />
-    <Compile Include="Cassandra\Mutation.cs" />
-    <Compile Include="Cassandra\NotFoundException.cs" />
-    <Compile Include="Cassandra\PooledClient.cs" />
-    <Compile Include="Cassandra\Protocol\TBase.cs" />
-    <Compile Include="Cassandra\Protocol\TBinaryProtocol.cs" />
-    <Compile Include="Cassandra\Protocol\TField.cs" />
-    <Compile Include="Cassandra\Protocol\TList.cs" />
-    <Compile Include="Cassandra\Protocol\TMap.cs" />
-    <Compile Include="Cassandra\Protocol\TMessage.cs" />
-    <Compile Include="Cassandra\Protocol\TMessageType.cs" />
-    <Compile Include="Cassandra\Protocol\TProtocol.cs" />
-    <Compile Include="Cassandra\Protocol\TProtocolException.cs" />
-    <Compile Include="Cassandra\Protocol\TProtocolFactory.cs" />
-    <Compile Include="Cassandra\Protocol\TProtocolUtil.cs" />
-    <Compile Include="Cassandra\Protocol\TSet.cs" />
-    <Compile Include="Cassandra\Protocol\TStruct.cs" />
-    <Compile Include="Cassandra\Protocol\TType.cs" />
-    <Compile Include="Cassandra\Server\TServer.cs" />
-    <Compile Include="Cassandra\Server\TSimpleServer.cs" />
-    <Compile Include="Cassandra\Server\TThreadedServer.cs" />
-    <Compile Include="Cassandra\Server\TThreadPoolServer.cs" />
-    <Compile Include="Cassandra\SlicePredicate.cs" />
-    <Compile Include="Cassandra\SliceRange.cs" />
-    <Compile Include="Cassandra\SuperColumn.cs" />
-    <Compile Include="Cassandra\TApplicationException.cs" />
-    <Compile Include="Cassandra\TimedOutException.cs" />
-    <Compile Include="Cassandra\TokenRange.cs" />
-    <Compile Include="Cassandra\TProcessor.cs" />
-    <Compile Include="Cassandra\Transport\TBufferedTransport.cs" />
-    <Compile Include="Cassandra\Transport\TFramedTransport.cs" />
-    <Compile Include="Cassandra\Transport\TServerSocket.cs" />
-    <Compile Include="Cassandra\Transport\TServerTransport.cs" />
-    <Compile Include="Cassandra\Transport\TSocket.cs" />
-    <Compile Include="Cassandra\Transport\TStreamTransport.cs" />
-    <Compile Include="Cassandra\Transport\TTransport.cs" />
-    <Compile Include="Cassandra\Transport\TTransportException.cs" />
-    <Compile Include="Cassandra\Transport\TTransportFactory.cs" />
-    <Compile Include="Cassandra\UnavailableException.cs" />
+    <Compile Include="Cassandra\PooledClient.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Cassandra\ThriftByteOperations.cs" />
     <Compile Include="Cassandra\Uuid\EthernetAddress.cs" />
     <Compile Include="Cassandra\Uuid\ITimestampSynchronizer.cs" />
     <Compile Include="Cassandra\Uuid\Uuid.cs" />
@@ -123,6 +80,9 @@
       <Project>{1D1D6920-3CA9-4960-B490-F25F9D63410A}</Project>
       <Name>Utilities</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Cassandra\Collections\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

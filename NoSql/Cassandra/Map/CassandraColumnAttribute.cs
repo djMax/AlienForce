@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace AlienForce.NoSql.Cassandra.Map
@@ -46,6 +44,12 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// </summary>
 		public CassandraColumnAttribute()
 		{
+		}
+
+		public string SuperColumnName
+		{
+			set { SuperColumnNameBytes = Encoding.UTF8.GetBytes(value); }
+			get { return Encoding.UTF8.GetString(SuperColumnNameBytes); }
 		}
 	}
 }

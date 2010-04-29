@@ -117,11 +117,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 		public static byte[] ToBytes(Type t, object o)
 		{
 			if (t == typeof(byte[])) { return (byte[])o; }
-			if (t == typeof(string)) { return ((string)o).ToCassandra(); }
+			if (t == typeof(string)) { return ((string)o).ToNetwork(); }
 			if (t == typeof(Guid)) { return ((Guid)o).ToByteArray(); }
-			if (t == typeof(int)) { return ((int)o).ToCassandra(); }
-			if (t == typeof(long)) { return ((long)o).ToCassandra(); }
-			if (t == typeof(short)) { return ((short)o).ToCassandra(); }
+			if (t == typeof(int)) { return ((int)o).ToNetwork(); }
+			if (t == typeof(long)) { return ((long)o).ToNetwork(); }
+			if (t == typeof(short)) { return ((short)o).ToNetwork(); }
 			throw new InvalidCastException(String.Format("Don't know how to use type {0} as a row key.", t.Name));
 		}
 	}
