@@ -55,6 +55,7 @@
     <Compile Include="Cassandra\Map\CassandraColumnAttribute.cs" />
     <Compile Include="Cassandra\Map\CassandraEntity.cs" />
     <Compile Include="Cassandra\Map\CassandraEntityAttribute.cs" />
+    <Compile Include="Cassandra\Map\CassandraIncludeAttribute.cs" />
     <Compile Include="Cassandra\Map\CassandraMapper.cs" />
     <Compile Include="Cassandra\Map\CassandraRowAttribute.cs" />
     <Compile Include="Cassandra\Map\CassandraRowReference.cs" />
