@@ -11,6 +11,67 @@ namespace AlienForce.NoSql.Cassandra.Map
 {
 	public static class CassandraMapper
 	{
+		public class ColumnInfo
+		{
+			public string Name;
+			public object Value;
+		}
+
+		public static void DiscoverEntities(IEnumerable<Type> types)
+		{
+			foreach (Type t in types)
+			{
+				if (t.GetCustomAttributes(typeof(CassandraEntityAttribute), false).Cast<CassandraEntityAttribute>().FirstOrDefault<CassandraEntityAttribute>() != null)
+				{
+					MetadataCache.EnsureMetadata(t);
+				}
+			}
+		}
+
+		public static ColumnInfo GetColumnInfo(SuperColumn s, Column c, Type t)
+		{
+			var md = MetadataCache.EnsureMetadata(t);
+			MetadataCache.CassandraMember mi;
+			if (md.HasSuperColumnId)
+			{
+				if (!md.Columns.TryGetValue(c.Name, out mi))
+				{
+					return null;
+				}
+				return new ColumnInfo() { Name = mi.Member.Name, Value = mi.GetValueFromCassandra(c) };
+			}
+			Dictionary<byte[], MetadataCache.CassandraMember> d;
+			if (!md.Super.TryGetValue(s.Name, out d)) { return null; }
+			if (!d.TryGetValue(c.Name, out mi)) { return null; }
+			return new ColumnInfo() { Name = mi.Member.Name, Value = mi.GetValueFromCassandra(c) };
+		}
+
+		public static ColumnInfo GetColumnInfo(Column c, Type t)
+		{
+			var md = MetadataCache.EnsureMetadata(t);
+			MetadataCache.CassandraMember mi;
+			if (!md.Columns.TryGetValue(c.Name, out mi))
+			{
+				return null;
+			}
+			return new ColumnInfo() { Name = mi.Member.Name, Value = mi.GetValueFromCassandra(c) };
+		}
+
+		public static Type[] GetCandidateTypes(string keyspace, string columnFamily)
+		{
+			List<Type> r = null;
+			foreach (var t in MetadataCache.GetKnownTypes())
+			{
+				var md = MetadataCache.EnsureMetadata(t);
+				if (md.DefaultKeyspace == keyspace && md.DefaultColumnFamily == columnFamily)
+				{
+					if (r == null) { r = new List<Type>(); }
+					r.Add(t);
+				}
+			}
+			return r != null ? r.ToArray() : null;
+		}
+
 		public static T Map<T>(string rowKey, List<ColumnOrSuperColumn> record) where T : ICassandraEntity, new()
 		{
 			var md = MetadataCache.EnsureMetadata(typeof(T));
@@ -69,7 +130,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 				md.DefaultKeyspace, 
 				rowKey, 
 				new ColumnParent() { Column_family = md.DefaultColumnFamily }, 
-				c.SlicePredicateAll(),
+				c.SlicePredicateAll()
+				,
 				ConsistencyLevel.ONE);
 			return CassandraMapper.Map<T>(rowKey, rec);
 		}

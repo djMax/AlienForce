@@ -14,6 +14,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 		static ThreadSafeDictionary<Type, Metadata> Map = new ThreadSafeDictionary<Type, Metadata>();
 		static ThreadSafeDictionary<Type, ConstructorInfo> RowRefConstructors = new ThreadSafeDictionary<Type, ConstructorInfo>();
 
+		internal static IEnumerable<Type> GetKnownTypes()
+		{
+			return Map.Keys;
+		}
+
 		internal static Metadata EnsureMetadata(Type thisType)
 		{
 			Metadata map;
@@ -107,6 +112,15 @@ namespace AlienForce.NoSql.Cassandra.Map
 								info.Super[refAtt.SuperColumnNameBytes] = cInfo = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default);
 							}
 							cInfo[memberInfo.CassandraName] = memberInfo;
+						}
+					}
+					else
+					{
+						var cIncAtt = GetAttribute<CassandraIncludeAttribute>(mi);
+						if (cIncAtt != null)
+						{
+							if (info.Includes == null) { info.Includes = new List<MemberInfo>(); }
+							info.Includes.Add(mi);
 						}
 					}
 				}
@@ -251,8 +265,9 @@ namespace AlienForce.NoSql.Cassandra.Map
 			public string DefaultColumnFamily;
 			public string DefaultKeyspace;
 			public bool HasSuperColumnId;
-			public Dictionary<byte[], CassandraMember> Columns = null;
-			public Dictionary<byte[], Dictionary<byte[], CassandraMember>> Super = null;
+			public Dictionary<byte[], CassandraMember> Columns;
+			public Dictionary<byte[], Dictionary<byte[], CassandraMember>> Super;
+			public List<MemberInfo> Includes;
 
 			public ConstructorInfo WithRowKey;
 			public ConstructorInfo WithRowKeyAndSuperColumnName;
