@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="Cassandra\AlienForceExtensions.cs" />
     <Compile Include="Cassandra\BatchMutateRequest.cs" />
+    <Compile Include="Cassandra\Map\AggregateBuilder.cs" />
     <Compile Include="Cassandra\Map\CassandraColumnAttribute.cs" />
     <Compile Include="Cassandra\Map\CassandraEntity.cs" />
     <Compile Include="Cassandra\Map\CassandraEntityAttribute.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="Cassandra\Map\CustomConverters.cs" />
     <Compile Include="Cassandra\Map\IByteConverter.cs" />
     <Compile Include="Cassandra\Map\ICassandraEntity.cs" />
+    <Compile Include="Cassandra\Map\IndexBuilder.cs" />
     <Compile Include="Cassandra\Map\MetadataCache.cs" />
     <Compile Include="Cassandra\Map\RowKeyConverter.cs" />
     <Compile Include="Cassandra\Map\StandardConverters.cs" />
