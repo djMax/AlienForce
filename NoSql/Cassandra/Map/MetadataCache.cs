@@ -68,7 +68,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 				if (att != null)
 				{
 					var cname = att.ColumnNameBytes ?? mi.Name.ToNetwork();
-					var memberInfo = new CassandraMember(mi, att.SuperColumnNameBytes, cname, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+					var memType = GetMemberType(mi, att.SuperColumnNameBytes != null && att.ReadAllValues);
+					var memberInfo = new CassandraMember(mi, att.SuperColumnNameBytes, cname, GetConverter(memType, att.Converter, t, mi.Name));
 					if (att.SuperColumnNameBytes != null)
 					{
 						if (info.HasSuperColumnId) { throw new InvalidOperationException("You cannot assign a field or property a super column name in an entity that uses super column names for identifiers."); }
@@ -78,7 +79,15 @@ namespace AlienForce.NoSql.Cassandra.Map
 						{
 							info.Super[att.SuperColumnNameBytes] = cInfo = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default);
 						}
-						cInfo[cname] = memberInfo;
+						if (att.ReadAllValues)
+						{
+							memberInfo.ReadAll = true;
+							cInfo[Metadata.ReadAllSuperKey] = memberInfo;
+						}
+						else
+						{
+							cInfo[cname] = memberInfo;
+						}
 					}
 					else
 					{
@@ -165,6 +174,28 @@ namespace AlienForce.NoSql.Cassandra.Map
 			PropertyInfo pi = mi as PropertyInfo;
 			if (pi != null) { return pi.PropertyType; } else { return ((FieldInfo)mi).FieldType; }
 		}
+
+		static Type GetMemberType(MemberInfo mi, bool isReadAll)
+		{
+			Type t = GetMemberType(mi);
+			if (isReadAll)
+			{
+				if (!t.IsGenericType)
+				{
+					throw new Exception("Cassandra Columns with ReadAll set must be Dictionary<K,V>");
+				}
+				var ga = t.GetGenericArguments();
+				if (ga.Length != 2)
+				{
+					if (!t.IsGenericType)
+					{
+						throw new Exception("Cassandra Columns with ReadAll set must be Dictionary<K,V>");
+					}
+				}
+				return t.GetGenericArguments()[1];
+			}
+			return t;
+		}
 		#endregion
 
 		#region Mapping information class/helpers
@@ -201,8 +232,26 @@ namespace AlienForce.NoSql.Cassandra.Map
 			/// The original attribute and the discovered type of the target entity
 			/// </summary>
 			public KeyValuePair<CassandraRowAttribute, Type> RowReference;
+			/// <summary>
+			/// True if this is a special collection type
+			/// </summary>
+			public bool ReadAll;
 
-			public byte[] GetValueFromObject(object thisObject)
+			public Type Type
+			{
+				get
+				{
+					PropertyInfo pi = Member as PropertyInfo;
+					return pi != null ? pi.PropertyType : ((FieldInfo)Member).FieldType;
+				}
+			}
+
+			public byte[] GetBytesFromObject(object thisObject)
+			{
+				return ConvertValue(RawValue(thisObject));
+			}
+
+			public object RawValue(object thisObject)
 			{
 				object thisValue;
 				PropertyInfo pi = Member as PropertyInfo;
@@ -214,6 +263,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					thisValue = ((FieldInfo)Member).GetValue(thisObject);
 				}
+				return thisValue;
+			}
+
+			public byte[] ConvertValue(object thisValue)
+			{
 				if (Converter != null)
 				{
 					return Converter.ToByteArray(thisValue);
@@ -247,20 +301,27 @@ namespace AlienForce.NoSql.Cassandra.Map
 
 			public void SetValueFromCassandra(object thisObject, Column cs)
 			{
+				SetRawValue(thisObject, GetValueFromCassandra(cs));
+			}
+
+			public void SetRawValue(object thisObject, object value)
+			{
 				PropertyInfo pi = Member as PropertyInfo;
 				if (pi != null)
 				{
-					pi.SetValue(thisObject, GetValueFromCassandra(cs), null);
+					pi.SetValue(thisObject, value, null);
 				}
 				else
 				{
-					((FieldInfo)Member).SetValue(thisObject, GetValueFromCassandra(cs));
+					((FieldInfo)Member).SetValue(thisObject, value);
 				}
 			}
 		}
 
 		internal class Metadata
 		{
+			public static byte[] ReadAllSuperKey = new byte[0];
+
 			public Type RowKeyType;
 			public string DefaultColumnFamily;
 			public string DefaultKeyspace;

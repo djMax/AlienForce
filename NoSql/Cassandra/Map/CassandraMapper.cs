@@ -72,6 +72,31 @@ namespace AlienForce.NoSql.Cassandra.Map
 			return r != null ? r.ToArray() : null;
 		}
 
+		public static T Map<T>(string rowKey, byte[] superColumn, List<ColumnOrSuperColumn> record) where T : ICassandraEntity, new()
+		{
+			var md = MetadataCache.EnsureMetadata(typeof(T));
+			if (record != null && record.Count > 0)
+			{
+				T ret;
+				if (md.WithRowKeyAndSuperColumnName != null)
+				{
+					ret = (T)md.WithRowKeyAndSuperColumnName.Invoke(new object[] { RowKeyConverter.FromRowKey(md.RowKeyType, rowKey), superColumn });
+				}
+				else if (md.WithRowKey != null)
+				{
+					ret = (T)md.WithRowKey.Invoke(new object[] { RowKeyConverter.FromRowKey(md.RowKeyType, rowKey) });
+				}
+				else
+				{
+					ret = new T();
+				}
+				ret.Load(record);
+				return ret;
+			}
+
+			return default(T);
+		}
+
 		public static T Map<T>(string rowKey, List<ColumnOrSuperColumn> record) where T : ICassandraEntity, new()
 		{
 			var md = MetadataCache.EnsureMetadata(typeof(T));
@@ -153,7 +178,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 				new ColumnParent() { Column_family = md.DefaultColumnFamily, Super_column = super },
 				c.SlicePredicateAll(),
 				ConsistencyLevel.ONE);
-			return CassandraMapper.Map<T>(rowKey, rec);
+			return CassandraMapper.Map<T>(rowKey, super, rec);
 		}
 
 		/// <summary>
@@ -211,11 +236,36 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					MemberExpression mexp = mem as MemberExpression;
 					ConstantExpression cexp;
+					ICassandraEntity entity;
 					if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
 					{
-						throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mem.ToString()));
+						if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
+						{
+							var mexpinner = ((MemberExpression)mexp.Expression).Member;
+							var propI = mexpinner as PropertyInfo;
+							var fldI = mexpinner as FieldInfo;
+							if (propI != null)
+							{
+								entity = propI.GetValue(cexp.Value, null) as ICassandraEntity;
+							}
+							else if (fldI != null)
+							{
+								entity = fldI.GetValue(cexp.Value) as ICassandraEntity;
+							}
+							else
+							{
+								throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mexpinner.GetType()));
+							}
+						}
+						else
+						{
+							throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mem.ToString()));
+						}
 					}
-					ICassandraEntity entity = cexp.Value as ICassandraEntity;
+					else
+					{
+						entity = cexp.Value as ICassandraEntity;
+					}
 					if (entity == null)
 					{
 						throw new InvalidOperationException(String.Format("SavePartial only allows ICassandraEntity objects to be saved. {0} does not inherit from ICassandraEntity.", cexp.Type.Name));

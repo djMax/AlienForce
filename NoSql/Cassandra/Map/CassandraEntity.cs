@@ -138,7 +138,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					if (shouldSave == null || shouldSave(memberInfo.Member))
 					{
-						byte[] o = memberInfo.GetValueFromObject(this);
+						byte[] o = memberInfo.GetBytesFromObject(this);
 						if (o != null)
 						{
 							request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(SuperColumnId, memberInfo.CassandraName, o));
@@ -149,11 +149,12 @@ namespace AlienForce.NoSql.Cassandra.Map
 			}
 			else if (md.Columns != null)
 			{
+				// Regular column entity, easy as pie.
 				foreach (var memberInfo in md.Columns.Values)
 				{
 					if (shouldSave == null || shouldSave(memberInfo.Member))
 					{
-						byte[] o = memberInfo.GetValueFromObject(this);
+						byte[] o = memberInfo.GetBytesFromObject(this);
 						if (o != null)
 						{
 							request.AddMutation(columnFamily, RowKeyString, request.GetColumnMutation(memberInfo.CassandraName, o));
@@ -164,24 +165,58 @@ namespace AlienForce.NoSql.Cassandra.Map
 			}
 			else if (md.Super != null)
 			{
+				#region This is a SuperColumn entity
 				foreach (var superColumnInfo in md.Super.Values)
 				{
 					foreach (var columnInfo in superColumnInfo.Values)
 					{
 						if (shouldSave == null || shouldSave(columnInfo.Member))
 						{
-							byte[] o = columnInfo.GetValueFromObject(this);
-							if (o != null)
+							if (columnInfo.ReadAll && columnInfo.Type.IsGenericType && columnInfo.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
 							{
-								request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+								#region Multicolumn value
+								// This is a "multi value" column where the super column name is fixed, but any column under it is
+								// an dictionary entry whose key is the column name and value is the column value.
+								Type[] kvTypes = columnInfo.Type.GetGenericArguments();
+								// The key has to be one of the standard types for now.
+								var keyConverter = StandardConverters.GetConverter(kvTypes[0]);
+								object propVal = columnInfo.RawValue(this);
+								System.Collections.IDictionary d = propVal as System.Collections.IDictionary;
+								if (d != null)
+								{
+									foreach (var kv in d.Keys)
+									{
+										var val = columnInfo.ConvertValue(d[kv]);
+										var cname = keyConverter.ToByteArray(kv);
+										request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, cname, val));
+									}
+								}
+								#endregion
+							}
+							else
+							{
+								byte[] o = columnInfo.GetBytesFromObject(this);
+								if (o != null)
+								{
+									request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+								}
 							}
 						}
 					}
 				}
 				HandleIncludes(md.Includes, request, columnFamily, shouldSave);
+				#endregion
 			}
 		}
 
+		/// <summary>
+		/// Includes allow one Cassandra entity to include the properties of another as if they were it's own, or as a
+		/// group of properties under a supercolumn.
+		/// </summary>
+		/// <param name="list"></param>
+		/// <param name="request"></param>
+		/// <param name="columnFamily"></param>
+		/// <param name="shouldSave"></param>
 		private void HandleIncludes(List<MemberInfo> list, BatchMutateRequest request, string columnFamily, Func<MemberInfo, bool> shouldSave)
 		{
 			if (list != null)
@@ -235,12 +270,17 @@ namespace AlienForce.NoSql.Cassandra.Map
 				var matchingSuper = source[0];
 				if (SuperColumnId != null)
 				{
-					matchingSuper = source.FirstOrDefault<ColumnOrSuperColumn>((cand) => ByteArrayComparer.Default.Equals(cand.Super_column.Name, SuperColumnId));
+					matchingSuper = source.FirstOrDefault<ColumnOrSuperColumn>((cand) => (cand.Super_column != null && ByteArrayComparer.Default.Equals(cand.Super_column.Name, SuperColumnId)));
 				}
-				if (matchingSuper != null)
+				if (matchingSuper != null && matchingSuper.Super_column != null && matchingSuper.Super_column.Columns != null)
 				{
 					matchingSuper.Super_column.Columns.ForEach((x) => newSource.Add(new ColumnOrSuperColumn() { Column = x }));
 					source = newSource;
+				}
+				else if (!source.Any<ColumnOrSuperColumn>((cand) => cand.Super_column != null))
+				{
+					// It appears this means that you asked for just one super column, so C* doesn't bother to fill it out
+					// nothing to do, just let it go through
 				}
 				else
 				{
@@ -269,15 +309,39 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					if (map.Super != null && map.Super.TryGetValue(cs.Super_column.Name, out superInfo))
 					{
-						foreach (var scol in cs.Super_column.Columns)
+						if (superInfo.Count == 1 && superInfo.TryGetValue(MetadataCache.Metadata.ReadAllSuperKey, out memberInfo))
 						{
-							if (superInfo.TryGetValue(scol.Name, out memberInfo))
+							#region Read all columns under this super column into a dictionary
+							var dict = memberInfo.RawValue(this);
+							var kvTypes = memberInfo.Type.GetGenericArguments();
+							IByteConverter keyConv = StandardConverters.GetConverter(kvTypes[0]);
+							if (dict == null)
 							{
-								memberInfo.SetValueFromCassandra(this, scol);
+								dict = memberInfo.Type.GetConstructor(Type.EmptyTypes).Invoke(null);
+								memberInfo.SetRawValue(this, dict);
 							}
-							else
+							var asDict = dict as System.Collections.IDictionary;
+							if (asDict != null)
 							{
-								LoadUnknownColumn(scol);
+								foreach (var scol in cs.Super_column.Columns)
+								{
+									asDict[keyConv.ToObject(scol.Name)] = memberInfo.GetValueFromCassandra(scol);
+								}
+							}
+							#endregion
+						}
+						else
+						{
+							foreach (var scol in cs.Super_column.Columns)
+							{
+								if (superInfo.TryGetValue(scol.Name, out memberInfo))
+								{
+									memberInfo.SetValueFromCassandra(this, scol);
+								}
+								else
+								{
+									LoadUnknownColumn(scol);
+								}
 							}
 						}
 					}

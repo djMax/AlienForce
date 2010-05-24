@@ -57,6 +57,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 			_Converters[typeof(short)] = ShortConverter.Default;
 			_Converters[typeof(byte)] = ByteConverter.Default;
 			_Converters[typeof(DateTime)] = DateTimeConverter.Default;
+			_Converters[typeof(Guid)] = GuidConverter.Default;
 		}
 
 		public sealed class NullConverter : IByteConverter
@@ -64,6 +65,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 			public static NullConverter Default = new NullConverter();
 			public byte[] ToByteArray(object o) { return (byte[])o; }
 			public object ToObject(byte[] b) { return b; }
+		}
+
+		public sealed class GuidConverter : IByteConverter
+		{
+			public static GuidConverter Default = new GuidConverter();
+			public byte[] ToByteArray(object o) { return (o != null && ((Guid)o) != Guid.Empty) ? ((Guid)o).ToByteArray() : null; }
+			public object ToObject(byte[] b) { return b != null ? new Guid(b) : Guid.Empty; }
 		}
 
 		public sealed class DateTimeConverter : IByteConverter

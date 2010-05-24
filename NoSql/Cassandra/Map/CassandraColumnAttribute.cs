@@ -9,6 +9,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 		public byte[] SuperColumnNameBytes { get; set; }
 		public byte[] ColumnNameBytes { get; set; }
 		public Type Converter { get; set; }
+		/// <summary>
+		/// When set to true, AND when super column name is set, the column type is a keyed collection type (e.g. Dictionary)
+		/// and we should interpret any column under it as an instance of a type (Converter now operates on those)
+		/// </summary>
+		public bool ReadAllValues { get; set; }
 
 		public CassandraColumnAttribute(string name, Type converter)
 		{
