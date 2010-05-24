@@ -22,7 +22,7 @@ namespace AlienForce.Utilities.Web
 		private static Dictionary<string, bool> _EnvironmentTags = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 		private static bool _DebugEnv;
 
-		public static bool AppHasEnvirontmentTag(string tag)
+		public static bool AppHasEnvironmentTag(string tag)
 		{
 			return ((AlienForceMvcApplication)HttpContext.Current.ApplicationInstance).HasEnvironmentTag(tag);
 		}
