@@ -11,6 +11,7 @@ using AlienForce.Utilities.Billing;
 using System.ComponentModel;
 using AlienForce.Utilities.Logging;
 using System.Configuration;
+using System.Web;
 
 namespace AlienForce.Utilities.Web
 {
@@ -20,6 +21,11 @@ namespace AlienForce.Utilities.Web
 
 		private static Dictionary<string, bool> _EnvironmentTags = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 		private static bool _DebugEnv;
+
+		public static bool AppHasEnvirontmentTag(string tag)
+		{
+			return ((AlienForceMvcApplication)HttpContext.Current.ApplicationInstance).HasEnvironmentTag(tag);
+		}
 
 		/// <summary>
 		/// Environment tags can be used for things like 'DEBUG' or 'NOSSL' that control major decisions
