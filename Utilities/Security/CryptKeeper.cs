@@ -124,5 +124,25 @@ namespace AlienForce.Utilities.Security
 		{
 			return Decrypt(buffer, 0, buffer.Length);
 		}
+
+		/// <summary>
+		/// Encrypt a string (UTF8 encoding will be used) and convert to a web-safe base64 string (+ => -, / => _, = => $)
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <returns></returns>
+		public string WebEncrypt(string buffer)
+		{
+			return Convert.ToBase64String(Encrypt(Encoding.UTF8.GetBytes(buffer))).Replace('+', '-').Replace('/', '_').Replace('=', '$');
+		}
+
+		/// <summary>
+		/// Encrypt a string (UTF8 encoding will be used) and convert from a web-safe base64 string (+ => -, / => _, = => $)
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <returns></returns>
+		public string WebDecrypt(string buffer)
+		{
+			return Encoding.UTF8.GetString(Decrypt(Convert.FromBase64String(buffer.Replace('-', '+').Replace('_', '/').Replace('$', '='))));
+		}
 	}
 }
