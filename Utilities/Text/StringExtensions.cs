@@ -7,6 +7,7 @@ namespace AlienForce.Utilities.Text
 {
 	public static class StringExtensions
 	{
+		#region Camel case helpers
 		/// <summary>
 		/// Change a non-flag enumeration value using Camel Case to a space-separated list.
 		/// </summary>
@@ -69,6 +70,74 @@ namespace AlienForce.Utilities.Text
 		{
 			return String.Join(" ", SplitByCamelCase(source));
 		}
+		#endregion
+
+		#region XML/SQL Server Escaping
+		static string EncodeControlCharacters(string input)
+		{
+			int i = 0, len = input.Length;
+			for (; i < len; i++)
+			{
+				char c = input[i];
+				if (c < 0x20 && (c != 0x9 && c != 0xA && c != 0xD))
+				{
+					break;
+				}
+			}
+			if (i == len)
+			{
+				return input;
+			}
+			StringBuilder sb = new StringBuilder();
+			if (i != 0) { sb.Append(input, 0, i); }
+			for (; i < len; i++)
+			{
+				char c = input[i];
+				if (c < 0x20 && (c != 0x9 && c != 0xA && c != 0xD))
+				{
+					sb.Append((char) (0xE000+c));
+				}
+				else
+				{
+					sb.Append(c);
+				}
+			}
+			return sb.ToString();
+		}
+
+		static string DecodeControlCharacters(string input)
+		{
+			int i = 0, len = input.Length;
+			for (; i < len; i++)
+			{
+				char c = input[i];
+				if (c >= 0xE000 && c < 0xE020)
+				{
+					break;
+				}
+			}
+			if (i == len)
+			{
+				return input;
+			}
+			StringBuilder sb = new StringBuilder();
+			if (i != 0) { sb.Append(input, 0, i); }
+			for (; i < len; i++)
+			{
+				char c = input[i];
+				if (c >= 0xE000 && c < 0xE020)
+				{
+					sb.Append((char) (c - 0xE000));
+				}
+				else
+				{
+					sb.Append(c);
+				}
+			}
+			return sb.ToString();
+		}
+
+		#endregion
 
 	}
 }
