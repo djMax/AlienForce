@@ -50,7 +50,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		{
 			var md = MetadataCache.EnsureMetadata(t);
 			MetadataCache.CassandraMember mi;
-			if (!md.Columns.TryGetValue(c.Name, out mi))
+			if (md.Columns == null || !md.Columns.TryGetValue(c.Name, out mi))
 			{
 				return null;
 			}
