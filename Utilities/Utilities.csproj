@@ -73,10 +73,20 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Messages.resx</DependentUpon>
     </Compile>
+    <Compile Include="NaturalLanguageSchedules\Schedule.cs" />
+    <Compile Include="NaturalLanguageSchedules\ScheduleParser.cs" />
+    <Compile Include="NaturalLanguageSchedules\ScheduleRule.cs" />
+    <Compile Include="NaturalLanguageSchedules\ScheduleRuleSpan.cs" />
+    <Compile Include="NaturalLanguageSchedules\ScheduleToken.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DataAnnotations\CreditCardAttribute.cs" />
+    <Compile Include="Security\ClientCertificateWebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Security\CryptKeeper.cs" />
     <Compile Include="Security\MachineLocalPrivateStore.cs" />
+    <Compile Include="Text\EnumerationParser.cs" />
+    <Compile Include="Text\NamedStringFormatter.cs" />
     <Compile Include="Text\StringExtensions.cs" />
     <Compile Include="Text\StringTokenizer.cs" />
     <Compile Include="Threading\BaseLock.cs" />
@@ -87,8 +97,10 @@
     <Compile Include="Thumbnail.cs" />
     <Compile Include="Web\AlienForceMvcApplication.cs" />
     <Compile Include="Web\BinaryContentResult.cs" />
+    <Compile Include="Web\CompressionFilter.cs" />
     <Compile Include="Web\EnvironmentAuthorizeAttribute.cs" />
     <Compile Include="Web\EnvironmentRequireHttpsAttribute.cs" />
+    <Compile Include="Web\QValues.cs" />
     <Compile Include="Web\RouteCollectionExtensions.cs" />
     <Compile Include="Web\UrlRouteAttribute.cs" />
     <Compile Include="Web\UrlRouteParameterConstraintAttribute.cs" />
