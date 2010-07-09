@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using Thrift.Transport;
 using Thrift.Protocol;
+using Apache.Cassandra060;
+using System.Linq.Expressions;
 
 namespace AlienForce.NoSql.Cassandra
 {
@@ -20,6 +22,22 @@ namespace AlienForce.NoSql.Cassandra
 		{
 			_Transport = transport;
 		}
+
+		public void SavePartial(ConsistencyLevel l, Expression<Func<object>> expression)
+		{
+			Map.CassandraMapper.SavePartial(this, l, expression);
+		}
+
+		public void Save(ConsistencyLevel l, params Map.ICassandraEntity[] rows)
+		{
+			Map.CassandraMapper.Save(this, l, rows);
+		}
+
+		public T SelectByRowKey<T>(object rowKey) where T : Map.ICassandraEntity, new()
+		{
+			return Map.CassandraMapper.SelectByRowKey<T>(this, rowKey);
+		}
+
 
 		#region IDisposable Members
 

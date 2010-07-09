@@ -6,6 +6,12 @@ namespace AlienForce.NoSql.Cassandra.Map
 	[AttributeUsage(AttributeTargets.Field|AttributeTargets.Property)]
 	public class CassandraColumnAttribute : System.Attribute
 	{
+		/// <summary>
+		/// If this entity is stored using composite keys (e.g. customerid + "_Profile", add this to the RowKey to get this field.
+		/// (and thus we'd use multiget_slice)
+		/// </summary>
+		public string CompositeKeySuffix { get; set; }
+
 		public byte[] SuperColumnNameBytes { get; set; }
 		public byte[] ColumnNameBytes { get; set; }
 		public Type Converter { get; set; }

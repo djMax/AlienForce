@@ -7,6 +7,7 @@ using AlienForce.NoSql.Cassandra;
 using AlienForce.Utilities.Collections;
 using System.Drawing;
 using Apache.Cassandra060;
+using System.Linq.Expressions;
 
 namespace AlienForce.NoSql.Cassandra.Map
 {
@@ -32,6 +33,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 	/// <typeparam name="RowKeyType"></typeparam>
 	public abstract class CassandraEntity<RowKeyType> : ICassandraEntity, _ICassandraEntity
 	{
+		List<MemberInfo> Deletes;
 		List<ColumnOrSuperColumn> LoadedFrom;
 
 		protected CassandraEntity() { }
@@ -126,7 +128,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// <param name="request"></param>
 		/// <param name="columnFamily"></param>
 		/// <param name="shouldSave"></param>
-		public virtual void AddChanges(BatchMutateRequest request, string columnFamily, Func<MemberInfo,bool> shouldSave)
+		public virtual void AddChanges(BatchMutateRequest request, string columnFamily, Func<MemberInfo,byte[],byte[],string,bool> shouldSave)
 		{
 			var md = MetadataCache.EnsureMetadata(this.GetType());
 
@@ -136,12 +138,19 @@ namespace AlienForce.NoSql.Cassandra.Map
 				// actually inside the SuperColumnId
 				foreach (var memberInfo in md.Columns.Values)
 				{
-					if (shouldSave == null || shouldSave(memberInfo.Member))
+					if (shouldSave == null || shouldSave(memberInfo.Member, memberInfo.CassandraName, memberInfo.SuperColumnCassandraName, memberInfo.CompositeKeySuffix))
 					{
-						byte[] o = memberInfo.GetBytesFromObject(this);
-						if (o != null)
+						if (Deletes != null && Deletes.Contains(memberInfo.Member))
 						{
-							request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(SuperColumnId, memberInfo.CassandraName, o));
+							request.AddMutation(columnFamily, memberInfo.GetRowKey(RowKeyString), request.GetSupercolumnDeletion(SuperColumnId, memberInfo.CassandraName));
+						}
+						else
+						{
+							byte[] o = memberInfo.GetBytesFromObject(this);
+							if (o != null)
+							{
+								request.AddMutation(columnFamily, memberInfo.GetRowKey(RowKeyString), request.GetSupercolumnMutation(SuperColumnId, memberInfo.CassandraName, o));
+							}
 						}
 					}
 				}
@@ -152,12 +161,40 @@ namespace AlienForce.NoSql.Cassandra.Map
 				// Regular column entity, easy as pie.
 				foreach (var memberInfo in md.Columns.Values)
 				{
-					if (shouldSave == null || shouldSave(memberInfo.Member))
+					if (shouldSave == null || shouldSave(memberInfo.Member, memberInfo.CassandraName, memberInfo.SuperColumnCassandraName, memberInfo.CompositeKeySuffix))
 					{
-						byte[] o = memberInfo.GetBytesFromObject(this);
-						if (o != null)
+						if (Deletes != null && Deletes.Contains(memberInfo.Member))
 						{
-							request.AddMutation(columnFamily, RowKeyString, request.GetColumnMutation(memberInfo.CassandraName, o));
+							request.AddMutation(columnFamily, memberInfo.GetRowKey(RowKeyString), request.GetColumnDeletion(memberInfo.CassandraName));
+						}							
+						else
+						{
+							if (md.UsesCompositeKeys && memberInfo.ReadAll)
+							{
+								// This is a ReadAll composite key, so the key is the column name, the value is the value.
+								Type[] kvTypes = memberInfo.Type.GetGenericArguments();
+								// The key has to be one of the standard types for now.
+								var keyConverter = StandardConverters.GetConverter(kvTypes[0]);
+								object propVal = memberInfo.RawValue(this);
+								System.Collections.IDictionary d = propVal as System.Collections.IDictionary;
+								if (d != null)
+								{
+									foreach (var kv in d.Keys)
+									{
+										var val = memberInfo.ConvertValue(d[kv]);
+										var cname = keyConverter.ToByteArray(kv);
+										request.AddMutation(columnFamily, memberInfo.GetRowKey(RowKeyString), request.GetColumnMutation(cname, val));
+									}
+								}
+							}
+							else
+							{
+								byte[] o = memberInfo.GetBytesFromObject(this);
+								if (o != null)
+								{
+									request.AddMutation(columnFamily, memberInfo.GetRowKey(RowKeyString), request.GetColumnMutation(memberInfo.CassandraName, o));
+								}
+							}
 						}
 					}
 				}
@@ -170,35 +207,51 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					foreach (var columnInfo in superColumnInfo.Values)
 					{
-						if (shouldSave == null || shouldSave(columnInfo.Member))
+						if (shouldSave == null || shouldSave(columnInfo.Member, columnInfo.CassandraName, columnInfo.SuperColumnCassandraName, columnInfo.CompositeKeySuffix))
 						{
 							if (columnInfo.ReadAll && columnInfo.Type.IsGenericType && columnInfo.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
 							{
-								#region Multicolumn value
-								// This is a "multi value" column where the super column name is fixed, but any column under it is
-								// an dictionary entry whose key is the column name and value is the column value.
-								Type[] kvTypes = columnInfo.Type.GetGenericArguments();
-								// The key has to be one of the standard types for now.
-								var keyConverter = StandardConverters.GetConverter(kvTypes[0]);
-								object propVal = columnInfo.RawValue(this);
-								System.Collections.IDictionary d = propVal as System.Collections.IDictionary;
-								if (d != null)
+								// This is a bit sketchy - you mark this for delete we're going to delete it all.
+								// Perhaps we should look to the keys in the member to figure out what to delete?
+								if (Deletes != null && Deletes.Contains(columnInfo.Member))
 								{
-									foreach (var kv in d.Keys)
-									{
-										var val = columnInfo.ConvertValue(d[kv]);
-										var cname = keyConverter.ToByteArray(kv);
-										request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, cname, val));
-									}
+									request.AddMutation(columnFamily, columnInfo.GetRowKey(RowKeyString), request.GetSupercolumnDeletion(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName));
 								}
-								#endregion
+								else
+								{
+									#region Multicolumn value
+									// This is a "multi value" column where the super column name is fixed, but any column under it is
+									// an dictionary entry whose key is the column name and value is the column value.
+									Type[] kvTypes = columnInfo.Type.GetGenericArguments();
+									// The key has to be one of the standard types for now.
+									var keyConverter = StandardConverters.GetConverter(kvTypes[0]);
+									object propVal = columnInfo.RawValue(this);
+									System.Collections.IDictionary d = propVal as System.Collections.IDictionary;
+									if (d != null)
+									{
+										foreach (var kv in d.Keys)
+										{
+											var val = columnInfo.ConvertValue(d[kv]);
+											var cname = keyConverter.ToByteArray(kv);
+											request.AddMutation(columnFamily, columnInfo.GetRowKey(RowKeyString), request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, cname, val));
+										}
+									}
+									#endregion
+								}
 							}
 							else
 							{
-								byte[] o = columnInfo.GetBytesFromObject(this);
-								if (o != null)
+								if (Deletes != null && Deletes.Contains(columnInfo.Member))
 								{
-									request.AddMutation(columnFamily, RowKeyString, request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+									request.AddMutation(columnFamily, columnInfo.GetRowKey(RowKeyString), request.GetSupercolumnDeletion(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName));
+								}
+								else
+								{
+									byte[] o = columnInfo.GetBytesFromObject(this);
+									if (o != null)
+									{
+										request.AddMutation(columnFamily, columnInfo.GetRowKey(RowKeyString), request.GetSupercolumnMutation(columnInfo.SuperColumnCassandraName, columnInfo.CassandraName, o));
+									}
 								}
 							}
 						}
@@ -217,7 +270,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// <param name="request"></param>
 		/// <param name="columnFamily"></param>
 		/// <param name="shouldSave"></param>
-		private void HandleIncludes(List<MemberInfo> list, BatchMutateRequest request, string columnFamily, Func<MemberInfo, bool> shouldSave)
+		private void HandleIncludes(List<MemberInfo> list, BatchMutateRequest request, string columnFamily, Func<MemberInfo, byte[], byte[], string, bool> shouldSave)
 		{
 			if (list != null)
 			{
@@ -230,6 +283,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 					else { ice = ((FieldInfo)include).GetValue(this) as _ICassandraEntity; }
 					if (ice != null)
 					{
+						// TODO there's something missing here in regards to Composite Keys.  Not sure exactly how to handle it yet.
 						var exRow = ice.RowKeyStringOverride;
 						var exSuper = ice.SuperColumnOverride;
 						ice.RowKeyStringOverride = this.RowKeyString;
@@ -249,6 +303,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 			}
 		}
 
+		public void Load(List<ColumnOrSuperColumn> source)
+		{
+			Load(null, source);
+		}
+
 		/// <summary>
 		/// Load a CLR entity from a Cassandra result.  If you want to add custom fields, use LoadUnknownColumn rather than overriding
 		/// this.  But if you do override this, be very careful about the CassandraInclude attribute, because it's immensely confusing.
@@ -256,7 +315,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// TODO handle cassandra include ourselves
 		/// </summary>
 		/// <param name="source"></param>
-		public virtual void Load(List<ColumnOrSuperColumn> source)
+		public virtual void Load(string compositeKeyPrefix, List<ColumnOrSuperColumn> source)
 		{
 			var map = MetadataCache.EnsureMetadata(this.GetType());
 
@@ -290,13 +349,17 @@ namespace AlienForce.NoSql.Cassandra.Map
 			LoadedFrom = source;
 
 			MetadataCache.CassandraMember memberInfo;
-			Dictionary<byte[], MetadataCache.CassandraMember> superInfo;
+			Dictionary<MetadataCache.ColumnNameSpec, MetadataCache.CassandraMember> superInfo;
 
 			foreach (var cs in source)
 			{
 				if (cs.Column != null)
 				{
-					if (map.Columns != null && map.Columns.TryGetValue(cs.Column.Name, out memberInfo))
+					if (map.Columns != null && map.Columns.TryGetValue(new MetadataCache.ColumnNameSpec(compositeKeyPrefix, cs.Column.Name), out memberInfo))
+					{
+						memberInfo.SetValueFromCassandra(this, cs.Column);
+					}
+					else if (map.Columns != null && map.Columns.TryGetValue(new MetadataCache.ColumnNameSpec(compositeKeyPrefix, MetadataCache.Metadata.ReadAllSuperKey.Name), out memberInfo))
 					{
 						memberInfo.SetValueFromCassandra(this, cs.Column);
 					}
@@ -307,8 +370,10 @@ namespace AlienForce.NoSql.Cassandra.Map
 				}
 				else if (cs.Super_column != null)
 				{
-					if (map.Super != null && map.Super.TryGetValue(cs.Super_column.Name, out superInfo))
+					// This row is super columns.  Does the entity expect a super column with this prefix/name?
+					if (map.Super != null && map.Super.TryGetValue(new MetadataCache.ColumnNameSpec(compositeKeyPrefix, cs.Super_column.Name), out superInfo))
 					{
+						// Is this a "read em all" super column?
 						if (superInfo.Count == 1 && superInfo.TryGetValue(MetadataCache.Metadata.ReadAllSuperKey, out memberInfo))
 						{
 							#region Read all columns under this super column into a dictionary
@@ -332,9 +397,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 						}
 						else
 						{
+							// Regular super-column based column, iterate over the columns 
+							// (ignore the composite key prefix because we've decided they are consumed by the super)
 							foreach (var scol in cs.Super_column.Columns)
 							{
-								if (superInfo.TryGetValue(scol.Name, out memberInfo))
+								if (superInfo.TryGetValue(new MetadataCache.ColumnNameSpec(null, scol.Name), out memberInfo))
 								{
 									memberInfo.SetValueFromCassandra(this, scol);
 								}
@@ -354,6 +421,72 @@ namespace AlienForce.NoSql.Cassandra.Map
 		}
 
 		#endregion
+
+		/// <summary>
+		/// Mark columns for deletion (still must call Save or SavePartial)
+		/// </summary>
+		/// <param name="expression"></param>
+		public virtual void Delete(Expression<Func<object>> expression)
+		{
+			var body = expression.Body;
+			if (body.NodeType == ExpressionType.New)
+			{
+				// List of members.
+				var nexp = (NewExpression)body;
+				foreach (var mem in nexp.Arguments)
+				{
+					MemberExpression mexp = mem as MemberExpression;
+					ConstantExpression cexp;
+					ICassandraEntity entity;
+					if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
+					{
+						if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
+						{
+							var mexpinner = ((MemberExpression)mexp.Expression).Member;
+							var propI = mexpinner as PropertyInfo;
+							var fldI = mexpinner as FieldInfo;
+							if (propI != null)
+							{
+								entity = propI.GetValue(cexp.Value, null) as ICassandraEntity;
+							}
+							else if (fldI != null)
+							{
+								entity = fldI.GetValue(cexp.Value) as ICassandraEntity;
+							}
+							else
+							{
+								throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mexpinner.GetType()));
+							}
+						}
+						else
+						{
+							throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mem.ToString()));
+						}
+					}
+					else
+					{
+						entity = cexp.Value as ICassandraEntity;
+					}
+					if (entity == null || entity != this)
+					{
+						throw new InvalidOperationException(String.Format("Delete only opeates on a single object instance. {0} does not resolve to this ICassandraEntity.", cexp.Type.Name));
+					}
+					List<MemberInfo> minfo;
+					if (Deletes == null)
+					{
+						Deletes = new List<MemberInfo>();
+					}
+					Deletes.Add(mexp.Member);
+				}
+			}
+			else if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
+			{
+				// Single member.
+			}
+			else if (body.NodeType == ExpressionType.Convert)
+			{
+			}
+		}
 
 		/// <summary>
 		/// Override to read your own jagged columns

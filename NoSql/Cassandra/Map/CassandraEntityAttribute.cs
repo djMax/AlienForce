@@ -12,13 +12,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// If true, all properties are assumed to be "under" a super column id as specified by the SuperColumnId property on the object.
 		/// </summary>
 		public bool HasSuperColumnId { get; set; }
-		public string DefaultKeyspace { get; set; }
-		public string DefaultColumnFamily { get; set; }
+		public string Keyspace { get; set; }
+		public string ColumnFamily { get; set; }
 
 		public CassandraEntityAttribute(string keyspace, string columnFamily)
 		{
-			DefaultKeyspace = keyspace;
-			DefaultColumnFamily = columnFamily;
+			Keyspace = keyspace;
+			ColumnFamily = columnFamily;
 		}
 	}
 }

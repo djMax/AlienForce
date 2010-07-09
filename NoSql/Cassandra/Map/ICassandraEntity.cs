@@ -8,6 +8,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 	public interface ICassandraEntity
 	{
 		void Load(List<ColumnOrSuperColumn> source);
+		void Load(string compositeKeyPrefix, List<ColumnOrSuperColumn> source);
 
 		/// <summary>
 		/// Add all relevant changes to a BatchMutateRequest. Since there are cases where
@@ -24,8 +25,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 		/// </summary>
 		/// <param name="request"></param>
 		/// <param name="columnFamily"></param>
-		/// <param name="shouldSave"></param>
-		void AddChanges(BatchMutateRequest request, string columnFamily, Func<MemberInfo, bool> shouldSave);
+		/// <param name="shouldSave">Returns true if this field should be saved.  Arguments are C# member info, super column name, column name and composite key suffix</param>
+		void AddChanges(BatchMutateRequest request, string columnFamily, Func<MemberInfo, byte[], byte[], string, bool> shouldSave);
 
 		string RowKeyString { get; }
 		byte[] RowKeyForReference { get; }

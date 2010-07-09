@@ -43,8 +43,8 @@ namespace AlienForce.NoSql.Cassandra.Map
 			if (ceAtt != null)
 			{
 				info.HasSuperColumnId = ceAtt.HasSuperColumnId;
-				info.DefaultColumnFamily = ceAtt.DefaultColumnFamily;
-				info.DefaultKeyspace = ceAtt.DefaultKeyspace;
+				info.DefaultColumnFamily = ceAtt.ColumnFamily;
+				info.DefaultKeyspace = ceAtt.Keyspace;
 			}
 
 			// Rowkey type is it's own thing
@@ -67,17 +67,27 @@ namespace AlienForce.NoSql.Cassandra.Map
 				var att = GetAttribute<CassandraColumnAttribute>(mi);
 				if (att != null)
 				{
+					if (att.CompositeKeySuffix != null)
+					{
+						info.UsesCompositeKeys = true;
+						if (info.CompositeSuffixes == null) { info.CompositeSuffixes = new List<string>(); }
+						if (!info.CompositeSuffixes.Contains(att.CompositeKeySuffix)) { info.CompositeSuffixes.Add(att.CompositeKeySuffix); }
+					}
 					var cname = att.ColumnNameBytes ?? mi.Name.ToNetwork();
+					var cnamespec = new ColumnNameSpec(att.SuperColumnNameBytes != null ? null : att.CompositeKeySuffix, cname);
 					var memType = GetMemberType(mi, att.SuperColumnNameBytes != null && att.ReadAllValues);
 					var memberInfo = new CassandraMember(mi, att.SuperColumnNameBytes, cname, GetConverter(memType, att.Converter, t, mi.Name));
+					// If there's a composite key suffix AND a super column name, the suffix only applies to the super column.  Not sure how this plays out.
+					memberInfo.CompositeKeySuffix = att.SuperColumnNameBytes != null ? null : att.CompositeKeySuffix;
 					if (att.SuperColumnNameBytes != null)
 					{
 						if (info.HasSuperColumnId) { throw new InvalidOperationException("You cannot assign a field or property a super column name in an entity that uses super column names for identifiers."); }
-						if (info.Super == null) { info.Super = new Dictionary<byte[], Dictionary<byte[], CassandraMember>>(ByteArrayComparer.Default); }
-						Dictionary<byte[], CassandraMember> cInfo;
-						if (!info.Super.TryGetValue(att.SuperColumnNameBytes, out cInfo))
+						if (info.Super == null) { info.Super = new Dictionary<ColumnNameSpec, Dictionary<ColumnNameSpec, CassandraMember>>(ColumnNameComparer.Default); }
+						Dictionary<ColumnNameSpec, CassandraMember> cInfo;
+						var scnspec = new ColumnNameSpec(att.CompositeKeySuffix, att.SuperColumnNameBytes);
+						if (!info.Super.TryGetValue(scnspec, out cInfo))
 						{
-							info.Super[att.SuperColumnNameBytes] = cInfo = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default);
+							info.Super[scnspec] = cInfo = new Dictionary<ColumnNameSpec, CassandraMember>(ColumnNameComparer.Default);
 						}
 						if (att.ReadAllValues)
 						{
@@ -86,13 +96,20 @@ namespace AlienForce.NoSql.Cassandra.Map
 						}
 						else
 						{
-							cInfo[cname] = memberInfo;
+							cInfo[cnamespec] = memberInfo;
 						}
 					}
 					else
 					{
-						if (info.Columns == null) { info.Columns = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default); }
-						info.Columns[cname] = new CassandraMember(mi, null, cname, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+						if (info.Columns == null) { info.Columns = new Dictionary<ColumnNameSpec, CassandraMember>(ColumnNameComparer.Default); }
+						var cm = new CassandraMember(mi, null, cname, GetConverter(GetMemberType(mi), att.Converter, t, mi.Name));
+						cm.CompositeKeySuffix = att.CompositeKeySuffix;
+						if (memberInfo.CompositeKeySuffix != null && att.ReadAllValues)
+						{
+							cm.ReadAll = true;
+							cnamespec.Name = Metadata.ReadAllSuperKey.Name;
+						}
+						info.Columns[cnamespec] = cm;
 					}
 				}
 				else
@@ -108,19 +125,19 @@ namespace AlienForce.NoSql.Cassandra.Map
 						var memberInfo = new CassandraMember(mi, refAtt.SuperColumnNameBytes, refAtt.ColumnNameBytes ?? mi.Name.ToNetwork(), refAtt, rowRefType);
 						if (refAtt.SuperColumnNameBytes == null)
 						{
-							if (info.Columns == null) { info.Columns = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default); }
-							info.Columns[memberInfo.CassandraName] = memberInfo;
+							if (info.Columns == null) { info.Columns = new Dictionary<ColumnNameSpec, CassandraMember>(ColumnNameComparer.Default); }
+							info.Columns[new ColumnNameSpec(null, memberInfo.CassandraName)] = memberInfo;
 						}
 						else
 						{
 							if (info.HasSuperColumnId) { throw new InvalidOperationException("You cannot assign a field or property a super column name in an entity that uses super column names for identifiers."); }
-							if (info.Super == null) { info.Super = new Dictionary<byte[], Dictionary<byte[], CassandraMember>>(ByteArrayComparer.Default); }
-							Dictionary<byte[], CassandraMember> cInfo;
-							if (!info.Super.TryGetValue(refAtt.SuperColumnNameBytes, out cInfo))
+							if (info.Super == null) { info.Super = new Dictionary<ColumnNameSpec, Dictionary<ColumnNameSpec, CassandraMember>>(ColumnNameComparer.Default); }
+							Dictionary<ColumnNameSpec, CassandraMember> cInfo;
+							if (!info.Super.TryGetValue(new ColumnNameSpec(null, refAtt.SuperColumnNameBytes), out cInfo))
 							{
-								info.Super[refAtt.SuperColumnNameBytes] = cInfo = new Dictionary<byte[], CassandraMember>(ByteArrayComparer.Default);
+								info.Super[new ColumnNameSpec(null, refAtt.SuperColumnNameBytes)] = cInfo = new Dictionary<ColumnNameSpec, CassandraMember>(ColumnNameComparer.Default);
 							}
-							cInfo[memberInfo.CassandraName] = memberInfo;
+							cInfo[new ColumnNameSpec(null, memberInfo.CassandraName)] = memberInfo;
 						}
 					}
 					else
@@ -212,6 +229,15 @@ namespace AlienForce.NoSql.Cassandra.Map
 				RowReference = new KeyValuePair<CassandraRowAttribute, Type>(rowRef, targetRowKeyType);
 			}
 
+			public string GetRowKey(string rowKey)
+			{
+				if (CompositeKeySuffix == null)
+				{
+					return rowKey;
+				}
+				return String.Concat(rowKey, "_", CompositeKeySuffix);
+			}
+
 			/// <summary>
 			/// The field or property info object
 			/// </summary>
@@ -236,6 +262,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 			/// True if this is a special collection type
 			/// </summary>
 			public bool ReadAll;
+
+			/// <summary>
+			/// Suffix on row key for composite keys
+			/// </summary>
+			public string CompositeKeySuffix;
 
 			public Type Type
 			{
@@ -301,7 +332,28 @@ namespace AlienForce.NoSql.Cassandra.Map
 
 			public void SetValueFromCassandra(object thisObject, Column cs)
 			{
-				SetRawValue(thisObject, GetValueFromCassandra(cs));
+				if (this.ReadAll)
+				{
+					// read into a dictionary
+					var dict = RawValue(thisObject);
+					var kvTypes = Type.GetGenericArguments();
+					IByteConverter keyConv = StandardConverters.GetConverter(kvTypes[0]);
+					if (dict == null)
+					{
+						dict = Type.GetConstructor(Type.EmptyTypes).Invoke(null);
+						SetRawValue(thisObject, dict);
+					}
+					var asDict = dict as System.Collections.IDictionary;
+					if (asDict != null)
+					{
+						asDict[keyConv.ToObject(cs.Name)] = GetValueFromCassandra(cs);
+					}
+
+				}
+				else
+				{
+					SetRawValue(thisObject, GetValueFromCassandra(cs));
+				}
 			}
 
 			public void SetRawValue(object thisObject, object value)
@@ -318,20 +370,77 @@ namespace AlienForce.NoSql.Cassandra.Map
 			}
 		}
 
+		private sealed class ColumnNameComparer : IEqualityComparer<ColumnNameSpec>
+		{
+			public static ColumnNameComparer Default = new ColumnNameComparer();
+			public bool Equals(ColumnNameSpec left, ColumnNameSpec right)
+			{
+				return left.Equals(right);
+			}
+
+			public int GetHashCode(ColumnNameSpec key)
+			{
+				return key.GetHashCode();
+			}
+		}
+
+		internal class ColumnNameSpec : IEquatable<ColumnNameSpec>
+		{
+			public ColumnNameSpec(string ck, byte[] name)
+			{
+				Name = name;
+				CompositeKeySuffix = ck;
+			}
+
+			public byte[] Name;
+			public string CompositeKeySuffix;
+
+			public override int GetHashCode()
+			{
+				if (CompositeKeySuffix != null)
+				{
+					return CompositeKeySuffix.GetHashCode() | ByteArrayComparer.Default.GetHashCode(Name);
+				}
+				return ByteArrayComparer.Default.GetHashCode(Name);
+			}
+
+			#region IEquatable<ColumnNameSpec> Members
+
+			public bool Equals(ColumnNameSpec other)
+			{
+				return String.Equals(this.CompositeKeySuffix, other.CompositeKeySuffix) && ByteArrayComparer.Default.Equals(this.Name, other.Name);
+			}
+
+			#endregion
+		}
+
 		internal class Metadata
 		{
-			public static byte[] ReadAllSuperKey = new byte[0];
+			public static ColumnNameSpec ReadAllSuperKey = new ColumnNameSpec(null, new byte[0]);
 
 			public Type RowKeyType;
 			public string DefaultColumnFamily;
 			public string DefaultKeyspace;
 			public bool HasSuperColumnId;
-			public Dictionary<byte[], CassandraMember> Columns;
-			public Dictionary<byte[], Dictionary<byte[], CassandraMember>> Super;
+			public bool UsesCompositeKeys;
+
+			public Dictionary<ColumnNameSpec, CassandraMember> Columns;
+			public Dictionary<ColumnNameSpec, Dictionary<ColumnNameSpec, CassandraMember>> Super;
 			public List<MemberInfo> Includes;
+			public List<string> CompositeSuffixes;
 
 			public ConstructorInfo WithRowKey;
 			public ConstructorInfo WithRowKeyAndSuperColumnName;
+
+			public List<string> CompositeKeys(string rowKey)
+			{
+				List<string> ret = new List<string>();
+				foreach (var s in CompositeSuffixes)
+				{
+					ret.Add(String.Concat(rowKey, "_", s));
+				}
+				return ret;
+			}
 		}
 		#endregion
 	

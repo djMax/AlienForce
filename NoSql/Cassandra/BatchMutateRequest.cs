@@ -53,6 +53,24 @@ namespace AlienForce.NoSql.Cassandra
 			m.AddRange(mutations);
 		}
 
+		public Mutation GetSupercolumnDeletion(byte[] superColumnName, params byte[][] keys)
+		{
+			var sp = new SlicePredicate()
+			{
+				Column_names = new List<byte[]>(keys),
+				Slice_range = new SliceRange()
+			};
+
+			return new Mutation()
+			{
+				Deletion = new Deletion()
+				{
+					Super_column = superColumnName,
+					Predicate = sp
+				}
+			};
+		}
+
 		public Mutation GetSupercolumnMutation(byte[] superColumnName, params byte[][] keysAndValues)
 		{
 			List<Column> lc = new List<Column>();
@@ -89,6 +107,25 @@ namespace AlienForce.NoSql.Cassandra
 						Name = superColumnName,
 						Columns = lc
 					}
+				}
+			};
+		}
+
+		public Mutation GetColumnDeletion(byte[] name)
+		{
+			var cl = new List<byte[]>();
+			cl.Add(name);
+
+			var sp = new SlicePredicate
+			{
+				Column_names = cl
+			};
+			return new Mutation()
+			{
+				Deletion = new Deletion
+				{
+					Predicate = sp,
+					Timestamp = Timestamp
 				}
 			};
 		}

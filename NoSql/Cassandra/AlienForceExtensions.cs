@@ -28,12 +28,10 @@ namespace AlienForce.NoSql.Cassandra
 
 		public static SlicePredicate SlicePredicateAll(this PooledClient client)
 		{
-			return Everything;
+			return new SlicePredicate
+			{
+				Slice_range = new SliceRange() { Count = int.MaxValue, Start = String.Empty.ToNetwork(), Finish = String.Empty.ToNetwork(), Reversed = false }
+			};
 		}
-
-		public readonly static SlicePredicate Everything = new SlicePredicate()
-		{
-			Slice_range = new SliceRange() { Count = int.MaxValue, Start = String.Empty.ToNetwork(), Finish = String.Empty.ToNetwork(), Reversed = false }
-		};
 	}
 }
