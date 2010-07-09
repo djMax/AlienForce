@@ -156,9 +156,28 @@ namespace AlienForce.NoSql.Cassandra.Uuid
             return sb.ToString();
         }
 
-        #region ICloneable Members
+				public Uuid(string str)
+				{
+					int offset = 0;
+					for (int i = 0; i < 16; ++i)
+					{
+						switch (i)
+						{
+							case 4:
+							case 6:
+							case 8:
+							case 10:
+								offset++;
+								break;
+						}
+						mBytes[i] = (byte)int.Parse(str.Substring(offset, 2), System.Globalization.NumberStyles.AllowHexSpecifier);
+						offset += 2;
+					}
+				}
 
-        public object Clone()
+				#region ICloneable Members
+
+				public object Clone()
         {
             return new Uuid(mBytes);
         }
