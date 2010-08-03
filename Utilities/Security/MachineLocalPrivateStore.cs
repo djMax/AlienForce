@@ -170,6 +170,11 @@ namespace AlienForce.Utilities.Security
 				Uri u = new Uri(args[1]);
 				c = WebConfigurationManager.OpenWebConfiguration(u.AbsolutePath, u.Host);
 			}
+			else if (args.Length >= 2 && args[0] == "protect")
+			{
+				Console.WriteLine(Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(args[2]), Encoding.UTF8.GetBytes(args[1]), DataProtectionScope.LocalMachine)));
+				return 0;
+			}
 			else
 			{
 				Console.WriteLine("Usage: Launcher.exe AlienForce.Utilities.dll MachineLocalPrivateStore [web|exe] [http://iis_site_name/path|path] <key name> <value>");
