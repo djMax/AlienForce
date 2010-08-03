@@ -455,12 +455,12 @@ namespace AlienForce.NoSql.Cassandra.Map
 							}
 							else
 							{
-								throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mexpinner.GetType()));
+								throw new InvalidOperationException(String.Format("Delete only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mexpinner.GetType()));
 							}
 						}
 						else
 						{
-							throw new InvalidOperationException(String.Format("SavePartial only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mem.ToString()));
+							throw new InvalidOperationException(String.Format("Delete only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mem.ToString()));
 						}
 					}
 					else
@@ -471,7 +471,6 @@ namespace AlienForce.NoSql.Cassandra.Map
 					{
 						throw new InvalidOperationException(String.Format("Delete only opeates on a single object instance. {0} does not resolve to this ICassandraEntity.", cexp.Type.Name));
 					}
-					List<MemberInfo> minfo;
 					if (Deletes == null)
 					{
 						Deletes = new List<MemberInfo>();
@@ -482,6 +481,47 @@ namespace AlienForce.NoSql.Cassandra.Map
 			else if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
 			{
 				// Single member.
+				MemberExpression mexp = body as MemberExpression;
+				ConstantExpression cexp;
+				ICassandraEntity entity;
+				if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
+				{
+					if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
+					{
+						var mexpinner = ((MemberExpression)mexp.Expression).Member;
+						var propI = mexpinner as PropertyInfo;
+						var fldI = mexpinner as FieldInfo;
+						if (propI != null)
+						{
+							entity = propI.GetValue(cexp.Value, null) as ICassandraEntity;
+						}
+						else if (fldI != null)
+						{
+							entity = fldI.GetValue(cexp.Value) as ICassandraEntity;
+						}
+						else
+						{
+							throw new InvalidOperationException(String.Format("Delete only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", mexpinner.GetType()));
+						}
+					}
+					else
+					{
+						throw new InvalidOperationException(String.Format("Delete only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body.ToString()));
+					}
+				}
+				else
+				{
+					entity = cexp.Value as ICassandraEntity;
+				}
+				if (entity == null)
+				{
+					throw new InvalidOperationException(String.Format("Delete only allows ICassandraEntity objects to be saved. {0} does not inherit from ICassandraEntity.", cexp.Type.Name));
+				}
+				if (Deletes == null)
+				{
+					Deletes = new List<MemberInfo>();
+				}
+				Deletes.Add(mexp.Member);
 			}
 			else if (body.NodeType == ExpressionType.Convert)
 			{

@@ -57,8 +57,7 @@ namespace AlienForce.NoSql.Cassandra
 		{
 			var sp = new SlicePredicate()
 			{
-				Column_names = new List<byte[]>(keys),
-				Slice_range = new SliceRange()
+				Column_names = new List<byte[]>(keys)				
 			};
 
 			return new Mutation()
@@ -66,7 +65,8 @@ namespace AlienForce.NoSql.Cassandra
 				Deletion = new Deletion()
 				{
 					Super_column = superColumnName,
-					Predicate = sp
+					Predicate = sp,
+					Timestamp = Timestamp
 				}
 			};
 		}
