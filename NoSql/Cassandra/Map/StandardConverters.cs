@@ -48,6 +48,7 @@ namespace AlienForce.NoSql.Cassandra.Map
 
 		static StandardConverters()
 		{
+			_Converters[typeof(bool)] = BoolConverter.Default;
 			_Converters[typeof(string)] = StringConverter.Default;
 			_Converters[typeof(int)] = IntConverter.Default;
 			_Converters[typeof(long)] = LongConverter.Default;
@@ -65,6 +66,13 @@ namespace AlienForce.NoSql.Cassandra.Map
 			public static NullConverter Default = new NullConverter();
 			public byte[] ToByteArray(object o) { return (byte[])o; }
 			public object ToObject(byte[] b) { return b; }
+		}
+
+		public sealed class BoolConverter : IByteConverter
+		{
+			public static BoolConverter Default = new BoolConverter();
+			public byte[] ToByteArray(object o) { return new byte[1] { (byte) (((bool)o) ? 'Y' : 'N') }; }
+			public object ToObject(byte[] b) { return b[0] == 'Y'; }
 		}
 
 		public sealed class GuidConverter : IByteConverter
