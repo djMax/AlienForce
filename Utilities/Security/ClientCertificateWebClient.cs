@@ -50,7 +50,7 @@ namespace AlienForce.Utilities.Security
 				// If we have a time-valid self-signed or untrusted cert use it
 				foreach (var cert in certs)
 				{
-					if (cert.NotAfter < DateTime.UtcNow && cert.NotBefore < DateTime.UtcNow)
+					if (cert.NotAfter > DateTime.UtcNow && cert.NotBefore < DateTime.UtcNow)
 					{
 						Certificate = cert;
 						return;
