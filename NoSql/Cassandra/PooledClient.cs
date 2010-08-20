@@ -38,6 +38,10 @@ namespace AlienForce.NoSql.Cassandra
 			return Map.CassandraMapper.SelectByRowKey<T>(this, rowKey);
 		}
 
+		public T SelectByRowKey<T>(string rowKey) where T : Map.ICassandraEntity, new()
+		{
+			return Map.CassandraMapper.SelectByRowKey<T>(this, rowKey);
+		}
 
 		#region IDisposable Members
 

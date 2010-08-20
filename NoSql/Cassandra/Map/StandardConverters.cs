@@ -178,5 +178,22 @@ namespace AlienForce.NoSql.Cassandra.Map
 				return Bitmap.FromStream(ms);
 			}
 		}
+
+		public sealed class JsonConverter : IByteConverter
+		{
+			public byte[] ToByteArray(object o)
+			{
+				var s = new System.Web.Script.Serialization.JavaScriptSerializer();
+				s.MaxJsonLength = int.MaxValue;
+				return Encoding.UTF8.GetBytes(s.Serialize(o));
+			}
+
+			public object ToObject(byte[] b)
+			{
+				var s = new System.Web.Script.Serialization.JavaScriptSerializer();
+				s.MaxJsonLength = int.MaxValue;
+				return s.DeserializeObject(Encoding.UTF8.GetString(b));
+			}
+		}
 	}
 }
