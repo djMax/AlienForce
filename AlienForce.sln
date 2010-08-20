@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{E728B694-C39
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Launcher", "Launcher\Launcher.csproj", "{A2995952-E6D3-4428-A35A-837FA49DF2D1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectService", "PerfectService\PerfectService.csproj", "{4613E565-AD75-44D9-A49C-6B98702A76A7}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = AlienForce.vsmdi
@@ -78,6 +80,16 @@ Global
 		{A2995952-E6D3-4428-A35A-837FA49DF2D1}.Release|Mixed Platforms.Build.0 = Release|x86
 		{A2995952-E6D3-4428-A35A-837FA49DF2D1}.Release|x86.ActiveCfg = Release|x86
 		{A2995952-E6D3-4428-A35A-837FA49DF2D1}.Release|x86.Build.0 = Release|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Debug|x86.ActiveCfg = Debug|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Debug|x86.Build.0 = Debug|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Release|Any CPU.ActiveCfg = Release|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Release|Mixed Platforms.Build.0 = Release|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Release|x86.ActiveCfg = Release|x86
+		{4613E565-AD75-44D9-A49C-6B98702A76A7}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
