@@ -96,8 +96,10 @@
     <Compile Include="Threading\WriteLock.cs" />
     <Compile Include="Thumbnail.cs" />
     <Compile Include="Web\AlienForceMvcApplication.cs" />
+    <Compile Include="Web\BaseController.cs" />
     <Compile Include="Web\BinaryContentResult.cs" />
     <Compile Include="Web\CompressionFilter.cs" />
+    <Compile Include="Web\EmailResult.cs" />
     <Compile Include="Web\EnvironmentAuthorizeAttribute.cs" />
     <Compile Include="Web\EnvironmentRequireHttpsAttribute.cs" />
     <Compile Include="Web\QValues.cs" />
