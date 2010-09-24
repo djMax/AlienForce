@@ -24,10 +24,12 @@ namespace AlienForce.Utilities.Web
 			return RenderPartialViewToString(null, model);
 		}
 
-		protected string RenderPartialViewToString(string viewName, object model)
+		protected string RenderPartialViewToString(string viewName, object model = null)
 		{
 			if (string.IsNullOrEmpty(viewName))
+			{
 				viewName = ControllerContext.RouteData.GetRequiredString("action");
+			}
 
 			ViewData.Model = model;
 
@@ -41,36 +43,47 @@ namespace AlienForce.Utilities.Web
 			}
 		}
 
-		protected string RenderViewToString(string viewName, object model)
+		protected string RenderViewToString(string viewName, object model = null)
 		{
 			if (string.IsNullOrEmpty(viewName))
+			{
 				viewName = ControllerContext.RouteData.GetRequiredString("action");
+			}
 
-			ViewData.Model = model;
+			var viewData = new ViewDataDictionary(model);
 
 			using (StringWriter sw = new StringWriter())
 			{
 				var viewResult = ViewEngines.Engines.FindView(ControllerContext, viewName, null);
-				var viewContext = new ViewContext(ControllerContext, viewResult.View, ViewData, TempData, sw);
+				var viewContext = new ViewContext(ControllerContext, viewResult.View, viewData, TempData, sw);
 				viewResult.View.Render(viewContext, sw);
 
 				return sw.GetStringBuilder().ToString();
 			}
 		}
 
-		protected EmailResult EmailResult(string from, string to, string subject,
-			string textBody = null, string htmlBody = null, string textView = null, string htmlView = null,
-			object viewData = null)
+		protected string RenderViewToString<T>(string viewName, T model)
 		{
-			if (htmlView != null)
+			if (string.IsNullOrEmpty(viewName))
 			{
-				htmlBody = RenderViewToString(htmlView, viewData);
+				viewName = ControllerContext.RouteData.GetRequiredString("action");
 			}
-			if (textView != null)
+
+			var viewData = new ViewDataDictionary<T>(model);
+
+			using (StringWriter sw = new StringWriter())
 			{
-				textBody = RenderViewToString(textView, viewData);
+				var viewResult = ViewEngines.Engines.FindView(ControllerContext, viewName, null);
+				var viewContext = new ViewContext(ControllerContext, viewResult.View, viewData, TempData, sw);
+				viewResult.View.Render(viewContext, sw);
+
+				return sw.GetStringBuilder().ToString();
 			}
-			return new EmailResult(from, to, subject, textBody, htmlBody);
+		}
+
+		protected ActionResult ServerTransferResult(object routeValues)
+		{
+			return new ServerTransferResult(routeValues);
 		}
 	}
 }
