@@ -412,6 +412,31 @@ namespace AlienForce.Utilities.Database
 		}
 		#endregion
 
+		#region Views
+		const string VIEW_SQL = @"SELECT *
+	    FROM  INFORMATION_SCHEMA.TABLES
+  	  WHERE TABLE_TYPE='VIEW'";
+
+		public List<Table> GetViews()
+		{
+			var result = new List<Table>();
+
+			//pull the tables in a reader
+			using (IDataReader rdr = GetReader(VIEW_SQL))
+			{
+				while (rdr.Read())
+				{
+					Table tbl = new Table();
+					tbl.Name = rdr["TABLE_NAME"].ToString();
+					tbl.Columns = LoadColumns(tbl);
+					result.Add(tbl);
+				}
+			}
+			return result;
+		}
+
+		#endregion
+
 		#region Tables
 		const string TABLE_SQL = @"SELECT *
 	    FROM  INFORMATION_SCHEMA.TABLES
