@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System;using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Web.Mvc;
@@ -16,12 +15,44 @@ namespace AlienForce.Utilities.Web
 	/// </summary>
 	public class EmailResult : ActionResult
 	{
+		public enum RenderMode
+		{
+			/// <summary>
+			/// By default, send an email
+			/// </summary>
+			Send,
+			/// <summary>
+			/// Render the output as text/html
+			/// </summary>
+			Html,
+			/// <summary>
+			/// Render the output as text/plain
+			/// </summary>
+			Text,
+			/// <summary>
+			/// Render the output as JSON details
+			/// </summary>
+			Json,
+			/// <summary>
+			/// Send an email, but return JSON indicating success/failure to the browser.
+			/// Useful for AJAX scenarios.
+			/// </summary>
+			SendWithJson
+		}
+
 		MailMessage mMessage = new MailMessage();
 		string mHTML;
 		string mText;
 
-		public EmailResult(string from, string to, string subject, string textBody = null, string htmlBody = null)
+		public RenderMode Mode { get; set; }
+
+		public EmailResult(string from, string to, string subject, string textBody = null, string htmlBody = null) : this(EmailResult.RenderMode.Send, from, to, subject, textBody, htmlBody)
 		{
+		}
+
+		public EmailResult(RenderMode mode, string from, string to, string subject, string textBody = null, string htmlBody = null)
+		{
+			Mode = mode;
 			mText = textBody;
 			mHTML = htmlBody;
 			mMessage.From = new MailAddress(from);
@@ -41,19 +72,18 @@ namespace AlienForce.Utilities.Web
 
 		public override void ExecuteResult(ControllerContext context)
 		{
-			var renderMode = context.RequestContext.HttpContext.Request.QueryString["renderMode"];
 			var cr = new ContentResult();
-			if (renderMode == "html")
+			if (Mode == RenderMode.Html)
 			{
 				cr.ContentType = "text/html";
 				cr.Content = mHTML;
 			}
-			else if (renderMode == "text")
+			else if (Mode == RenderMode.Text)
 			{
 				cr.ContentType = "text/plain";
 				cr.Content = mText;
 			}
-			else if (renderMode == "json")
+			else if (Mode == RenderMode.Json)
 			{
 				JsonResult jr = new JsonResult();
 				jr.Data = new
@@ -75,9 +105,22 @@ namespace AlienForce.Utilities.Web
 			else
 			{
 				new SmtpClient().Send(mMessage);
+				if (Mode == RenderMode.SendWithJson)
+				{
+					var jr = new JsonResult();
+					jr.Data = new { success = true };
+					jr.ExecuteResult(context);
+					return;
+				}
 				cr.Content = "OK";
 			}
 			cr.ExecuteResult(context);
 		}
+
+		public void Send()
+		{
+			new SmtpClient().Send(mMessage);
+		}
+
 	}
 }
