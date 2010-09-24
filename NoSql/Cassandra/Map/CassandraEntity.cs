@@ -335,6 +335,10 @@ namespace AlienForce.NoSql.Cassandra.Map
 				{
 					matchingSuper.Super_column.Columns.ForEach((x) => newSource.Add(new ColumnOrSuperColumn() { Column = x }));
 					source = newSource;
+					if (SuperColumnId == null)
+					{
+						SuperColumnId = matchingSuper.Super_column.Name;
+					}
 				}
 				else if (!source.Any<ColumnOrSuperColumn>((cand) => cand.Super_column != null))
 				{
