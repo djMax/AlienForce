@@ -140,6 +140,11 @@ namespace AlienForce.NoSql.Cassandra.Map
 				T ret;
 				if (md.WithRowKey != null)
 				{
+					int ix;
+					if (md.UsesCompositeKeys && (ix = rowKey.IndexOf('_')) > 0)
+					{
+						rowKey = rowKey.Substring(0, ix);
+					}
 					ret = (T)md.WithRowKey.Invoke(new object[] { RowKeyConverter.FromRowKey(md.RowKeyType, rowKey) });
 				}
 				else
