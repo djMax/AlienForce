@@ -38,6 +38,10 @@
     <Reference Include="BLToolkit.3">
       <HintPath>..\bin\BLToolkit.3.dll</HintPath>
     </Reference>
+    <Reference Include="MongoDB, Version=0.90.0.1, Culture=neutral, PublicKeyToken=f61bd00ba2535278, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\bin\MongoDB.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -77,6 +81,9 @@
     <Compile Include="Cassandra\Uuid\Uuid.cs" />
     <Compile Include="Cassandra\Uuid\UuidGenerator.cs" />
     <Compile Include="Cassandra\Uuid\UuidTimer.cs" />
+    <Compile Include="MongoDB\MongoBase.cs" />
+    <Compile Include="MongoDB\MongoCollectionAttribute.cs" />
+    <Compile Include="MongoDB\MongoExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{E728B694-C39
 		bin\BLToolkit.3.dll = bin\BLToolkit.3.dll
 		bin\Exceptioneer.WindowsFormsClient.dll = bin\Exceptioneer.WindowsFormsClient.dll
 		bin\log4net.dll = bin\log4net.dll
+		bin\MongoDB.dll = bin\MongoDB.dll
+		bin\MongoDB.GridFS.dll = bin\MongoDB.GridFS.dll
 		bin\Thrift.dll = bin\Thrift.dll
 	EndProjectSection
 EndProject
