@@ -13,9 +13,6 @@ namespace AlienForce.Utilities.Security
 	/// </summary>
 	public class CryptKeeper
 	{
-		Aes Cryptor;
-		HMACSHA256 Signer;
-
 		int MacSize;
 		int BlockSize;
 		int CipherStart;
@@ -24,23 +21,26 @@ namespace AlienForce.Utilities.Security
 		/// Reusable byte array for encryption
 		/// </summary>
 		byte[] IV;
+		byte[] Key;
 
 		public CryptKeeper(byte[] key)
 		{
-			Cryptor = AesCryptoServiceProvider.Create();
-			Cryptor.Key = key;
-			Signer = (HMACSHA256)new HMACSHA256(key);
-			_Init();
+			Key = key;
 		}
 
-		private void _Init()
+		private KeyValuePair<Aes,HMACSHA256> _Init()
 		{
+			Aes Cryptor = AesCryptoServiceProvider.Create();
+			HMACSHA256 Signer;
+			Cryptor.Key = Key;
+			Signer = (HMACSHA256)new HMACSHA256(Key);
 			Cryptor.Mode = CipherMode.CBC;
 			Cryptor.Padding = PaddingMode.PKCS7;
-			MacSize = Signer.HashSize / 8;
-			BlockSize = Cryptor.BlockSize / 8;
+			MacSize = Signer.HashSize/8;
+			BlockSize = Cryptor.BlockSize/8;
 			IV = new byte[BlockSize];
 			CipherStart = MacSize + BlockSize;
+			return new KeyValuePair<Aes, HMACSHA256>(Cryptor, Signer);
 		}
 
 		public byte[] Encrypt(string str)
@@ -51,6 +51,10 @@ namespace AlienForce.Utilities.Security
 
 		public byte[] Encrypt(byte[] buffer, int offset, int inLen)
 		{
+			var kv = _Init();
+			Aes Cryptor = kv.Key;
+			HMACSHA256 Signer = kv.Value;
+
 			int i, j = CipherStart, len;
 			Cryptor.GenerateIV();
 
@@ -82,12 +86,14 @@ namespace AlienForce.Utilities.Security
 
 		public byte[] Sign(string q)
 		{
-			return Signer.ComputeHash(Encoding.UTF8.GetBytes(q));
+			var kv = _Init();
+			return kv.Value.ComputeHash(Encoding.UTF8.GetBytes(q));
 		}
 
 		public byte[] Sign(byte[] b)
 		{
-			return Signer.ComputeHash(b);
+			var kv = _Init();
+			return kv.Value.ComputeHash(b);
 		}
 
 		public byte[] Encrypt(byte[] buffer)
@@ -97,6 +103,10 @@ namespace AlienForce.Utilities.Security
 
 		public byte[] Decrypt(byte[] buffer, int offset, int inLen)
 		{
+			var kv = _Init();
+			Aes Cryptor = kv.Key;
+			HMACSHA256 Signer = kv.Value;
+
 			if (inLen <= CipherStart)
 			{
 				return null; // bad message.
