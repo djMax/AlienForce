@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MongoDB;
 using System.Linq.Expressions;
 using System.Reflection;
-using MongoDB.Configuration;
+using System.IO;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Bson.DefaultSerializer;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver.Builders;
 
 namespace AlienForce.NoSql.MongoDB
 {
@@ -33,9 +38,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="c"></param>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public static T GetById(IMongoCollection<T> c, ID id)
+		public static T GetById(MongoCollection<T> c, ID id)
 		{
-			return c.FindOne(new Document("_id", id));
+			return c.FindOne(new BsonDocument { { "_id", BsonValue.Create(id) } });
 		}
 
 		/// <summary>
@@ -45,9 +50,10 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="client"></param>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public static T GetById(Mongo client, ID id)
+		public static T GetById(MongoServer client, ID id)
 		{
-			return client.GetCollection<T>().FindOne(new Document("_id", id));
+			var q = Query.EQ("_id", BsonValue.Create(id));
+			return client.GetCollection<T>().FindOne(q);
 		}
 
 		/// <summary>
@@ -70,9 +76,7 @@ namespace AlienForce.NoSql.MongoDB
 					if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 					{
 						var mexpinner = mexp.Member;
-						var pi = mexpinner as PropertyInfo;
-						var od = MongoConfiguration.Default.SerializationFactory.GetObjectDescriptor(mexp.Expression.Type);
-						return od.GetMongoPropertyName(null, pi != null ? pi.Name : ((FieldInfo)mexpinner).Name);
+						return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
 					}
 					else
 					{
@@ -87,10 +91,10 @@ namespace AlienForce.NoSql.MongoDB
 		/// Get a document consisting solely of the object id for this instance.
 		/// </summary>
 		/// <returns></returns>
-		public Document GetIdSelector()
+		public BsonDocument GetIdSelector()
 		{
-			var od = MongoConfiguration.Default.SerializationFactory.GetObjectDescriptor(typeof(T));
-			return new Document("_id", od.GetPropertyValue(this, "_id"));
+			var od = BsonClassMap.LookupClassMap(typeof(T));
+			return new BsonDocument("_id", BsonValue.Create(od.IdMemberMap.Getter(this)));
 		}
 
 		/// <summary>
@@ -101,10 +105,10 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="mongo"></param>
 		/// <param name="toSet"></param>
 		/// <param name="unSet"></param>
-		public void SetAndUnset(Mongo mongo, Document toSet, Document unSet)
+		public void SetAndUnset(MongoServer mongo, BsonDocument toSet, BsonDocument unSet)
 		{
 			mongo.GetCollection<T>().Update(
-				new Document("$set", toSet).Add("$unset", unSet), GetIdSelector()
+				GetIdSelector(), new BsonDocument("$set", toSet).Add("$unset", unSet)
 			);
 		}
 
@@ -114,9 +118,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="mongo"></param>
 		/// <param name="unSet"></param>
-		public void Set(Mongo mongo, Document toSet)
+		public void Set(MongoServer mongo, BsonDocument toSet)
 		{
-			mongo.GetCollection<T>().Update(new Document("$set", toSet), GetIdSelector());
+			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$set", toSet));
 		}
 
 		/// <summary>
@@ -125,9 +129,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="mongo"></param>
 		/// <param name="toSet"></param>
-		public void Unset(Mongo mongo, Document unSet)
+		public void Unset(MongoServer mongo, BsonDocument unSet)
 		{
-			mongo.GetCollection<T>().Update(new Document("$unset", unSet), GetIdSelector());
+			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$unset", unSet));
 		}
 
 		/// <summary>
@@ -136,10 +140,37 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="mongo"></param>
 		/// <param name="propertyExpression"></param>
 		/// <param name="value"></param>
-		public void SetOne(Mongo mongo, Expression<Func<object>> propertyExpression, object value)
+		public void SetOne(MongoServer mongo, Expression<Func<object>> propertyExpression, object value)
 		{
-			var doc = new Document().AddProperty(propertyExpression, value);
+			var doc = new BsonDocument().AddProperty(propertyExpression, value);
 			Set(mongo, doc);
+		}
+
+		public byte[] ToBSON()
+		{
+			using (MemoryStream ms = new MemoryStream())
+			{
+				using (var writer = BsonWriter.Create(ms))
+				{
+					global::MongoDB.Bson.Serialization.BsonSerializer.Serialize(writer, this);
+					writer.Flush();
+					ms.Flush();
+					return ms.ToArray();
+				}
+			}
+		}
+
+		public static T FromBSON(byte[] b)
+		{
+			using (MemoryStream ms = new MemoryStream(b))
+			{
+				return FromBSON(ms);
+			}
+		}
+
+		public static T FromBSON(Stream s)
+		{
+			return BsonSerializer.Deserialize<T>(s);
 		}
 	}
 }

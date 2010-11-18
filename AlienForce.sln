@@ -16,13 +16,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoSql", "NoSql\NoSql.csproj
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{E728B694-C39E-4048-A544-6C1B9E243D7F}"
 	ProjectSection(SolutionItems) = preProject
-		bin\Apache.Cassandra060.dll = bin\Apache.Cassandra060.dll
 		bin\BLToolkit.3.dll = bin\BLToolkit.3.dll
 		bin\Exceptioneer.WindowsFormsClient.dll = bin\Exceptioneer.WindowsFormsClient.dll
 		bin\log4net.dll = bin\log4net.dll
-		bin\MongoDB.dll = bin\MongoDB.dll
-		bin\MongoDB.GridFS.dll = bin\MongoDB.GridFS.dll
-		bin\Thrift.dll = bin\Thrift.dll
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Launcher", "Launcher\Launcher.csproj", "{A2995952-E6D3-4428-A35A-837FA49DF2D1}"

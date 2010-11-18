@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MongoDB;
 using System.Linq.Expressions;
 using System.Reflection;
-using MongoDB.Configuration;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Bson.DefaultSerializer;
 
 namespace AlienForce.NoSql.MongoDB
 {
@@ -16,6 +17,23 @@ namespace AlienForce.NoSql.MongoDB
 		private static readonly long kClockMultiplierL = 10000L;
 
 		/// <summary>
+		/// Construct an Oid and then replace the time component.  Obviously make sure you know what you're doing here
+		/// as you may create Oid clashes if you are not careful.
+		/// </summary>
+		/// <param name="time"></param>
+		/// <returns></returns>
+		public static ObjectId OidFromTime(this DateTime time)
+		{
+			byte[] exArr = ObjectId.GenerateNewId().ToByteArray();
+			long msecSinceEpoch = (long) time.Subtract(kBaseTime).TotalSeconds;
+			exArr[0] = (byte)((msecSinceEpoch >> 24) & 0xFF);
+			exArr[1] = (byte)((msecSinceEpoch >> 16) & 0xFF);
+			exArr[2] = (byte)((msecSinceEpoch >> 8) & 0xFF);
+			exArr[3] = (byte)((msecSinceEpoch) & 0xFF);
+			return new ObjectId(exArr);
+		}
+
+		/// <summary>
 		/// Convert a Cassandra time based UUID into a MongoDB object id in a deterministic way.
 		/// Removes some entropy obviously, but generally "should be fine."  Specifically,
 		/// the OID clock is seconds not 100-nanosecond units.  We get the low byte of the UUID
@@ -23,7 +41,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="timebasedUuid"></param>
 		/// <returns></returns>
-		public static Oid ConvertUUIDToOid(this Guid timebasedUuid)
+		public static ObjectId ConvertUUIDToOid(this Guid timebasedUuid)
 		{
 			byte[] arr = timebasedUuid.ToByteArray();
 			// UUID FORMAT:
@@ -48,7 +66,7 @@ namespace AlienForce.NoSql.MongoDB
 			oid[9] = arr[3]; // we lopped this off of the time, so might as well get it back
 			oid[10] = arr[8];
 			oid[11] = arr[9];
-			return new Oid(oid);
+			return new ObjectId(oid);
 		}
 
 		/// <summary>
@@ -57,7 +75,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="doc"></param>
 		/// <param name="expression"></param>
-		public static Document AddProperty(this Document doc, Expression<Func<object>> expression)
+		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression)
 		{
 			return AddProperty(doc, expression, 1);
 		}
@@ -70,7 +88,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="expression"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static Document AddProperty(this Document doc, Expression<Func<object>> expression, object value)
+		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression, object value)
 		{
 			return doc.AddProperty(expression, null, value);
 		}
@@ -86,7 +104,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="rejoinder"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static Document AddProperty(this Document doc, Expression<Func<object>> expression, string rejoinder, object value)
+		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression, string rejoinder, object value)
 		{
 			var body = expression.Body;
 			if (body.NodeType == ExpressionType.Convert)
@@ -111,7 +129,7 @@ namespace AlienForce.NoSql.MongoDB
 							expName = String.Concat(expName, ".", rejoinder);
 						}
 					}
-					doc.Add(expName, value);
+					doc.Add(expName, BsonValue.Create(value));
 					return doc;
 				}
 			}
@@ -125,7 +143,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="expression"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static Document AddPropertyIfNotNull(this Document doc, Expression<Func<object>> expression, object value)
+		public static BsonDocument AddPropertyIfNotNull(this BsonDocument doc, Expression<Func<object>> expression, object value)
 		{
 			return AddPropertyIf(doc, expression, value != null, value);
 		}
@@ -138,7 +156,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="shouldAdd"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static Document AddPropertyIf(this Document doc, Expression<Func<object>> expression, bool shouldAdd, object value)
+		public static BsonDocument AddPropertyIf(this BsonDocument doc, Expression<Func<object>> expression, bool shouldAdd, object value)
 		{
 			if (shouldAdd)
 			{
@@ -147,19 +165,34 @@ namespace AlienForce.NoSql.MongoDB
 			return doc;
 		}
 
-		static Dictionary<Type, KeyValuePair<string, string>> _Collections = new Dictionary<Type,KeyValuePair<string,string>>();
-
-		public static IMongoCollection<Document> GetUntypedCollection<T>(this Mongo mongo)
+		public static BsonDocument AddIfNotNull(this BsonDocument doc, string key, object value)
 		{
-			var kv = GetAttribute(typeof(T));
-			return mongo[kv.Key].GetCollection<Document>(kv.Value);
+			if (value != null)
+			{
+				doc.Add(key, BsonValue.Create(value));
+			}
+			return doc;
 		}
 
-		public static IMongoCollection<T> GetCollection<T>(this Mongo mongo)
+		static Dictionary<Type, KeyValuePair<string, string>> _Collections = new Dictionary<Type, KeyValuePair<string, string>>();
+
+		public static MongoCollection GetUntypedCollection<T>(this MongoServer mongo)
+		{
+			var kv = GetAttribute(typeof(T));
+			return mongo[kv.Key].GetCollection(kv.Value);
+		}
+
+		public static MongoCollection<T> GetCollection<T>(this MongoServer mongo)
 			where T : class
 		{
 			var kv = GetAttribute(typeof(T));
 			return mongo[kv.Key].GetCollection<T>(kv.Value);
+		}
+
+		public static MongoDatabase GetDatabase<T>(this MongoServer mongo)
+		{
+			var kv = GetAttribute(typeof(T));
+			return mongo[kv.Key];
 		}
 
 		static KeyValuePair<string, string> GetAttribute(Type t)
@@ -190,7 +223,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="expression"></param>
 		/// <returns></returns>
-		public static string GetMongoPropertyName(this Mongo unused, Expression<Func<object>> expression)
+		public static string GetMongoPropertyName(this MongoServer unused, Expression<Func<object>> expression)
 		{
 			var body = expression.Body;
 			if (body.NodeType == ExpressionType.Convert)
@@ -219,29 +252,24 @@ namespace AlienForce.NoSql.MongoDB
 			if (mexp.Expression != null && mexp.Expression is ConstantExpression)
 			{
 				var mexpinner = mexp.Member;
-				var pi = mexpinner as PropertyInfo;
-				var od = MongoConfiguration.Default.SerializationFactory.GetObjectDescriptor(mexp.Expression.Type);
-				return od.GetMongoPropertyName(null, pi != null ? pi.Name : ((FieldInfo)mexpinner).Name);
+				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
 			}
-			if (mexp.NodeType == ExpressionType.MemberAccess && 
+			if (mexp.NodeType == ExpressionType.MemberAccess &&
 				(((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 			{
 				var mexpinner = mexp.Member;
-				var pi = mexpinner as PropertyInfo;
-				var od = MongoConfiguration.Default.SerializationFactory.GetObjectDescriptor(mexp.Expression.Type);
-				return od.GetMongoPropertyName(null, pi != null ? pi.Name : ((FieldInfo)mexpinner).Name);
+				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
 			}
 			else if (mexp.NodeType == ExpressionType.MemberAccess && (minn = ((MemberExpression)mexp.Expression as MemberExpression)) != null)
 			{
 				var mexpinner = mexp.Member;
-				var pi = mexpinner as PropertyInfo;
-				var od = MongoConfiguration.Default.SerializationFactory.GetObjectDescriptor(mexp.Expression.Type);
+				var od = BsonClassMap.LookupClassMap(mexp.Expression.Type);
 				var topName = BuildName(minn, body);
 				if (topName != null)
 				{
-					return String.Concat(BuildName(minn, body), ".", od.GetMongoPropertyName(null, pi != null ? pi.Name : ((FieldInfo)mexpinner).Name));
+					return String.Concat(BuildName(minn, body), ".", od.GetMemberMap(mexpinner.Name).ElementName);
 				}
-				return String.Concat(od.GetMongoPropertyName(null, pi != null ? pi.Name : ((FieldInfo)mexpinner).Name));
+				return String.Concat(od.GetMemberMap(mexpinner.Name).ElementName);
 			}
 			else
 			{
@@ -270,20 +298,30 @@ namespace AlienForce.NoSql.MongoDB
 		}
 
 		/// <summary>
+		/// Get the document property "_id"
+		/// </summary>
+		/// <param name="d"></param>
+		/// <returns></returns>
+		public static object GetId(this BsonDocument d)
+		{
+			return d["_id"];
+		}
+
+		/// <summary>
 		/// Convert a JSON string to a document.  Most useful for taking "admin user" input of a query to run
 		/// and run via "real code"
 		/// </summary>
 		/// <param name="json"></param>
 		/// <returns></returns>
-		public static Document ParseJsonToDocument(this string json)
+		public static BsonDocument ParseJsonToDocument(this string json)
 		{
 			var dict = new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
-			var document = new Document();
+			var document = new BsonDocument();
 			ToDoc(dict, document);
 			return document;
 		}
 
-		static void ToDoc(IDictionary<string, object> fields, Document doc)
+		static void ToDoc(IDictionary<string, object> fields, BsonDocument doc)
 		{
 			foreach (var kv in fields)
 			{
@@ -297,11 +335,11 @@ namespace AlienForce.NoSql.MongoDB
 					// May need to handle arrays differently
 					if (t.IsValueType || t == typeof(string))
 					{
-						doc.Add(kv.Key, kv.Value);
+						doc.Add(kv.Key, BsonValue.Create(kv.Value));
 					}
 					else if (kv.Value is IDictionary<string, object>)
 					{
-						var subdoc = new Document();
+						var subdoc = new BsonDocument();
 						ToDoc((IDictionary<string, object>)kv.Value, subdoc);
 						doc.Add(kv.Key, subdoc);
 					}

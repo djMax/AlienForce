@@ -33,7 +33,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\bin\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\external\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -131,8 +131,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)\bin
-copy $(TargetDir)\$(TargetName).pdb $(SolutionDir)\bin</PostBuildEvent>
+    <PostBuildEvent>copy /y $(TargetPath) $(SolutionDir)\bin
+copy /y $(TargetDir)\$(TargetName).pdb $(SolutionDir)\bin</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

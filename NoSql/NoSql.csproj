@@ -32,15 +32,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Apache.Cassandra060">
-      <HintPath>..\bin\Apache.Cassandra060.dll</HintPath>
-    </Reference>
     <Reference Include="BLToolkit.3">
-      <HintPath>..\bin\BLToolkit.3.dll</HintPath>
+      <HintPath>..\external\BLToolkit.3.dll</HintPath>
     </Reference>
-    <Reference Include="MongoDB, Version=0.90.0.1, Culture=neutral, PublicKeyToken=f61bd00ba2535278, processorArchitecture=MSIL">
+    <Reference Include="MongoDB.Bson, Version=0.7.0.3959, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\bin\MongoDB.dll</HintPath>
+      <HintPath>..\..\ThirdParty\mongo-csharp-driver\Driver\bin\Debug\MongoDB.Bson.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver, Version=0.7.0.3959, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\ThirdParty\mongo-csharp-driver\Driver\bin\Debug\MongoDB.Driver.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,40 +51,12 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Thrift">
-      <HintPath>..\bin\Thrift.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cassandra\AlienForceExtensions.cs" />
-    <Compile Include="Cassandra\BatchMutateRequest.cs" />
-    <Compile Include="Cassandra\Map\AggregateBuilder.cs" />
-    <Compile Include="Cassandra\Map\CassandraColumnAttribute.cs" />
-    <Compile Include="Cassandra\Map\CassandraEntity.cs" />
-    <Compile Include="Cassandra\Map\CassandraEntityAttribute.cs" />
-    <Compile Include="Cassandra\Map\CassandraIncludeAttribute.cs" />
-    <Compile Include="Cassandra\Map\CassandraMapper.cs" />
-    <Compile Include="Cassandra\Map\CassandraRowAttribute.cs" />
-    <Compile Include="Cassandra\Map\CassandraRowReference.cs" />
-    <Compile Include="Cassandra\Map\CustomConverters.cs" />
-    <Compile Include="Cassandra\Map\IByteConverter.cs" />
-    <Compile Include="Cassandra\Map\ICassandraEntity.cs" />
-    <Compile Include="Cassandra\Map\IndexBuilder.cs" />
-    <Compile Include="Cassandra\Map\MetadataCache.cs" />
-    <Compile Include="Cassandra\Map\RowKeyConverter.cs" />
-    <Compile Include="Cassandra\Map\StandardConverters.cs" />
-    <Compile Include="Cassandra\PooledClient.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Cassandra\ThriftByteOperations.cs" />
-    <Compile Include="Cassandra\Uuid\EthernetAddress.cs" />
-    <Compile Include="Cassandra\Uuid\ITimestampSynchronizer.cs" />
-    <Compile Include="Cassandra\Uuid\Uuid.cs" />
-    <Compile Include="Cassandra\Uuid\UuidGenerator.cs" />
-    <Compile Include="Cassandra\Uuid\UuidTimer.cs" />
     <Compile Include="MongoDB\MongoBase.cs" />
     <Compile Include="MongoDB\MongoCollectionAttribute.cs" />
     <Compile Include="MongoDB\MongoExtensions.cs" />
+    <Compile Include="MongoDB\NoIdGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -92,9 +65,7 @@
       <Name>Utilities</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Cassandra\Collections\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy $(TargetPath) $(SolutionDir)\bin
