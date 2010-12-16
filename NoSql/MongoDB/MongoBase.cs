@@ -76,7 +76,7 @@ namespace AlienForce.NoSql.MongoDB
 					if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 					{
 						var mexpinner = mexp.Member;
-						return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
+						return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 					}
 					else
 					{
@@ -108,7 +108,7 @@ namespace AlienForce.NoSql.MongoDB
 		public void SetAndUnset(MongoServer mongo, BsonDocument toSet, BsonDocument unSet)
 		{
 			mongo.GetCollection<T>().Update(
-				GetIdSelector(), new BsonDocument("$set", toSet).Add("$unset", unSet)
+				GetIdSelector(), new BsonDocument("$set", toSet).Add("$unset", unSet), UpdateFlags.Upsert
 			);
 		}
 
@@ -120,7 +120,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="unSet"></param>
 		public void Set(MongoServer mongo, BsonDocument toSet)
 		{
-			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$set", toSet));
+			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$set", toSet), UpdateFlags.Upsert);
 		}
 
 		/// <summary>
@@ -131,7 +131,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="toSet"></param>
 		public void Unset(MongoServer mongo, BsonDocument unSet)
 		{
-			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$unset", unSet));
+			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$unset", unSet), UpdateFlags.Upsert);
 		}
 
 		/// <summary>
@@ -148,16 +148,18 @@ namespace AlienForce.NoSql.MongoDB
 
 		public byte[] ToBSON()
 		{
+			byte[] bson;
 			using (MemoryStream ms = new MemoryStream())
 			{
 				using (var writer = BsonWriter.Create(ms))
 				{
 					global::MongoDB.Bson.Serialization.BsonSerializer.Serialize(writer, this);
-					writer.Flush();
+					writer.Close();
 					ms.Flush();
-					return ms.ToArray();
+					bson = ms.ToArray();
 				}
 			}
+			return bson;
 		}
 
 		public static T FromBSON(byte[] b)

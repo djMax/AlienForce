@@ -252,13 +252,13 @@ namespace AlienForce.NoSql.MongoDB
 			if (mexp.Expression != null && mexp.Expression is ConstantExpression)
 			{
 				var mexpinner = mexp.Member;
-				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
+				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 			}
 			if (mexp.NodeType == ExpressionType.MemberAccess &&
 				(((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 			{
 				var mexpinner = mexp.Member;
-				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetMemberMap(mexpinner.Name).ElementName;
+				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 			}
 			else if (mexp.NodeType == ExpressionType.MemberAccess && (minn = ((MemberExpression)mexp.Expression as MemberExpression)) != null)
 			{
@@ -267,9 +267,9 @@ namespace AlienForce.NoSql.MongoDB
 				var topName = BuildName(minn, body);
 				if (topName != null)
 				{
-					return String.Concat(BuildName(minn, body), ".", od.GetMemberMap(mexpinner.Name).ElementName);
+					return String.Concat(BuildName(minn, body), ".", od.GetAnyMemberMap(mexpinner.Name).ElementName);
 				}
-				return String.Concat(od.GetMemberMap(mexpinner.Name).ElementName);
+				return String.Concat(od.GetAnyMemberMap(mexpinner.Name).ElementName);
 			}
 			else
 			{

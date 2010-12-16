@@ -56,7 +56,6 @@
     <Compile Include="MongoDB\MongoBase.cs" />
     <Compile Include="MongoDB\MongoCollectionAttribute.cs" />
     <Compile Include="MongoDB\MongoExtensions.cs" />
-    <Compile Include="MongoDB\NoIdGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
