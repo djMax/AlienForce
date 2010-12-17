@@ -75,9 +75,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// </summary>
 		/// <param name="doc"></param>
 		/// <param name="expression"></param>
-		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression)
+		public static T AddProperty<T>(this T doc, Expression<Func<object>> expression) where T : BsonDocument
 		{
-			return AddProperty(doc, expression, 1);
+			return AddProperty<T>(doc, expression, 1);
 		}
 
 		/// <summary>
@@ -88,9 +88,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="expression"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression, object value)
+		public static T AddProperty<T>(this T doc, Expression<Func<object>> expression, object value) where T : BsonDocument
 		{
-			return doc.AddProperty(expression, null, value);
+			return doc.AddProperty<T>(expression, null, value);
 		}
 
 		/// <summary>
@@ -104,7 +104,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="rejoinder"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static BsonDocument AddProperty(this BsonDocument doc, Expression<Func<object>> expression, string rejoinder, object value)
+		public static T AddProperty<T>(this T doc, Expression<Func<object>> expression, string rejoinder, object value) where T : BsonDocument
 		{
 			var body = expression.Body;
 			if (body.NodeType == ExpressionType.Convert)
@@ -114,7 +114,7 @@ namespace AlienForce.NoSql.MongoDB
 			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
 			{
 				// Single member.
-				MemberExpression mexp = body as MemberExpression;
+				var mexp = body as MemberExpression;
 				if (mexp != null)
 				{
 					var expName = BuildName(mexp, body);
@@ -143,9 +143,9 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="expression"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static BsonDocument AddPropertyIfNotNull(this BsonDocument doc, Expression<Func<object>> expression, object value)
+		public static T AddPropertyIfNotNull<T>(this T doc, Expression<Func<object>> expression, object value) where T : BsonDocument
 		{
-			return AddPropertyIf(doc, expression, value != null, value);
+			return AddPropertyIf<T>(doc, expression, value != null, value);
 		}
 
 		/// <summary>
@@ -156,16 +156,12 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="shouldAdd"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static BsonDocument AddPropertyIf(this BsonDocument doc, Expression<Func<object>> expression, bool shouldAdd, object value)
+		public static T AddPropertyIf<T>(this T doc, Expression<Func<object>> expression, bool shouldAdd, object value) where T : BsonDocument
 		{
-			if (shouldAdd)
-			{
-				return AddProperty(doc, expression, value);
-			}
-			return doc;
+		    return shouldAdd ? AddProperty<T>(doc, expression, value) : doc;
 		}
 
-		public static BsonDocument AddIfNotNull(this BsonDocument doc, string key, object value)
+	    public static T AddIfNotNull<T>(this T doc, string key, object value) where T : BsonDocument
 		{
 			if (value != null)
 			{
@@ -174,7 +170,7 @@ namespace AlienForce.NoSql.MongoDB
 			return doc;
 		}
 
-		static Dictionary<Type, KeyValuePair<string, string>> _Collections = new Dictionary<Type, KeyValuePair<string, string>>();
+		static readonly Dictionary<Type, KeyValuePair<string, string>> _Collections = new Dictionary<Type, KeyValuePair<string, string>>();
 
 		public static MongoCollection GetUntypedCollection<T>(this MongoServer mongo)
 		{
@@ -203,7 +199,7 @@ namespace AlienForce.NoSql.MongoDB
 				return kv;
 			}
 			var atts = t.GetCustomAttributes(typeof(MongoCollectionAttribute), false);
-			if (atts == null || atts.Length == 0)
+			if (atts.Length == 0)
 			{
 				atts = t.GetCustomAttributes(typeof(MongoCollectionAttribute), true);
 			}
@@ -233,7 +229,7 @@ namespace AlienForce.NoSql.MongoDB
 			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
 			{
 				// Single member.
-				MemberExpression mexp = body as MemberExpression;
+				var mexp = body as MemberExpression;
 				if (mexp != null)
 				{
 					return BuildName(mexp, body);
@@ -290,7 +286,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <summary>
 		/// Unescape something that was once passed through ToMongoKey
 		/// </summary>
-		/// <param name="rawKey"></param>
+        /// <param name="mongoKey"></param>
 		/// <returns></returns>
 		public static string FromMongoKey(this string mongoKey)
 		{
@@ -321,7 +317,7 @@ namespace AlienForce.NoSql.MongoDB
 			return document;
 		}
 
-		static void ToDoc(IDictionary<string, object> fields, BsonDocument doc)
+		static void ToDoc(IEnumerable<KeyValuePair<string, object>> fields, BsonDocument doc)
 		{
 			foreach (var kv in fields)
 			{

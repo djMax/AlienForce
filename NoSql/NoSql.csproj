@@ -35,13 +35,11 @@
     <Reference Include="BLToolkit.3">
       <HintPath>..\external\BLToolkit.3.dll</HintPath>
     </Reference>
-    <Reference Include="MongoDB.Bson, Version=0.7.0.3959, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\ThirdParty\mongo-csharp-driver\Driver\bin\Debug\MongoDB.Bson.dll</HintPath>
+    <Reference Include="MongoDB.Bson">
+      <HintPath>..\external\MongoDB.Bson.dll</HintPath>
     </Reference>
-    <Reference Include="MongoDB.Driver, Version=0.7.0.3959, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\ThirdParty\mongo-csharp-driver\Driver\bin\Debug\MongoDB.Driver.dll</HintPath>
+    <Reference Include="MongoDB.Driver">
+      <HintPath>..\external\MongoDB.Driver.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -67,8 +65,8 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)\bin
-copy $(TargetDir)\$(TargetName).pdb $(SolutionDir)\bin</PostBuildEvent>
+    <PostBuildEvent>copy $(TargetDir)*.dll $(SolutionDir)\bin
+copy $(TargetDir)\*.pdb $(SolutionDir)\bin</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

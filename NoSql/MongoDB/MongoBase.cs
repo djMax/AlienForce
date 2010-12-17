@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.IO;
+using System.Linq.Expressions;
 using MongoDB.Bson;
-using MongoDB.Driver;
 using MongoDB.Bson.DefaultSerializer;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 
 namespace AlienForce.NoSql.MongoDB
@@ -40,7 +36,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <returns></returns>
 		public static T GetById(MongoCollection<T> c, ID id)
 		{
-			return c.FindOne(new BsonDocument { { "_id", BsonValue.Create(id) } });
+			return c.FindOne(new QueryDocument() { { "_id", BsonValue.Create(id) } });
 		}
 
 		/// <summary>
@@ -69,7 +65,7 @@ namespace AlienForce.NoSql.MongoDB
 			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
 			{
 				// Single member.
-				MemberExpression mexp = body as MemberExpression;
+				var mexp = body as MemberExpression;
 				ConstantExpression cexp;
 				if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
 				{
@@ -91,10 +87,10 @@ namespace AlienForce.NoSql.MongoDB
 		/// Get a document consisting solely of the object id for this instance.
 		/// </summary>
 		/// <returns></returns>
-		public BsonDocument GetIdSelector()
+        public IMongoQuery GetIdSelector()
 		{
 			var od = BsonClassMap.LookupClassMap(typeof(T));
-			return new BsonDocument("_id", BsonValue.Create(od.IdMemberMap.Getter(this)));
+			return new QueryDocument("_id", BsonValue.Create(od.IdMemberMap.Getter(this)));
 		}
 
 		/// <summary>
@@ -107,9 +103,12 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="unSet"></param>
 		public void SetAndUnset(MongoServer mongo, BsonDocument toSet, BsonDocument unSet)
 		{
-			mongo.GetCollection<T>().Update(
-				GetIdSelector(), new BsonDocument("$set", toSet).Add("$unset", unSet), UpdateFlags.Upsert
-			);
+		    mongo.GetCollection<T>().Update(
+		        GetIdSelector(), new UpdateDocument()
+		                             {
+		                                 {"$set", toSet},
+		                                 {"$unset", unSet}
+		                             }, UpdateFlags.Upsert);
 		}
 
 		/// <summary>
@@ -117,21 +116,21 @@ namespace AlienForce.NoSql.MongoDB
 		/// selector and adding a $set directive.
 		/// </summary>
 		/// <param name="mongo"></param>
-		/// <param name="unSet"></param>
+        /// <param name="toSet"></param>
 		public void Set(MongoServer mongo, BsonDocument toSet)
 		{
-			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$set", toSet), UpdateFlags.Upsert);
+            mongo.GetCollection<T>().Update(GetIdSelector(), new UpdateDocument("$set", toSet), UpdateFlags.Upsert);
 		}
 
-		/// <summary>
-		/// Unset the set of fields in unSet on this object.  Convenience method for getting the id
-		/// selector and adding an $unset directive.
-		/// </summary>
-		/// <param name="mongo"></param>
-		/// <param name="toSet"></param>
-		public void Unset(MongoServer mongo, BsonDocument unSet)
+	    /// <summary>
+	    /// Unset the set of fields in unSet on this object.  Convenience method for getting the id
+	    /// selector and adding an $unset directive.
+	    /// </summary>
+	    /// <param name="mongo"></param>
+	    /// <param name="unSet"></param>
+	    public void Unset(MongoServer mongo, BsonDocument unSet)
 		{
-			mongo.GetCollection<T>().Update(GetIdSelector(), new BsonDocument("$unset", unSet), UpdateFlags.Upsert);
+			mongo.GetCollection<T>().Update(GetIdSelector(), new UpdateDocument("$unset", unSet), UpdateFlags.Upsert);
 		}
 
 		/// <summary>
@@ -149,7 +148,7 @@ namespace AlienForce.NoSql.MongoDB
 		public byte[] ToBSON()
 		{
 			byte[] bson;
-			using (MemoryStream ms = new MemoryStream())
+			using (var ms = new MemoryStream())
 			{
 				using (var writer = BsonWriter.Create(ms))
 				{
@@ -164,7 +163,7 @@ namespace AlienForce.NoSql.MongoDB
 
 		public static T FromBSON(byte[] b)
 		{
-			using (MemoryStream ms = new MemoryStream(b))
+			using (var ms = new MemoryStream(b))
 			{
 				return FromBSON(ms);
 			}
