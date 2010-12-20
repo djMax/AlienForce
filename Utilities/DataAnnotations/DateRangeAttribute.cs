@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ComponentModel;
 
 namespace AlienForce.Utilities.DataAnnotations
@@ -10,7 +7,7 @@ namespace AlienForce.Utilities.DataAnnotations
 	{
 		private DateTime? MinValue = DateTime.MinValue;
 		private DateTime? MaxValue = DateTime.MaxValue;
-		private string[] _Patterns;
+		private string[] _patterns;
 		public string DatePatterns { get; set; }
 
 		public DateRangeAttribute(DateTime minValue, DateTime maxValue)
@@ -42,7 +39,7 @@ namespace AlienForce.Utilities.DataAnnotations
 		private void InitializeErrorMessageResource()
 		{
 			ErrorMessageResourceName = "DateRangeError";
-			ErrorMessageResourceType = AlienForce.Utilities.DataAnnotations.Resources.ResourceResolver.DefaultResourceType;
+			ErrorMessageResourceType = Resources.ResourceResolver.DefaultResourceType;
 		}
 
 		public override bool IsValid(object value)
@@ -70,21 +67,21 @@ namespace AlienForce.Utilities.DataAnnotations
 			{
 				return date >= DateTime.Now;
 			}
-			else if (MaxValue == null)
-			{
-				return date <= DateTime.Now;
-			}
-			return (date >= MinValue && date <= MaxValue);
+		    if (MaxValue == null)
+		    {
+		        return date <= DateTime.Now;
+		    }
+		    return (date >= MinValue && date <= MaxValue);
 		}
 
 		private object ConvertDate(string value)
 		{
 			if (String.IsNullOrWhiteSpace(DatePatterns)) { return null; }
-			if (_Patterns == null)
+			if (_patterns == null)
 			{
-				_Patterns = DatePatterns.Split('|');
+				_patterns = DatePatterns.Split('|');
 			}
-			var dt = ConvertDate(value, _Patterns);
+			var dt = ConvertDate(value, _patterns);
 			if (dt == null) { return null; }
 			return dt.Value;
 		}

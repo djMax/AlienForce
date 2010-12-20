@@ -36,7 +36,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <returns></returns>
 		public static T GetById(MongoCollection<T> c, ID id)
 		{
-			return c.FindOne(new QueryDocument() { { "_id", BsonValue.Create(id) } });
+			return c.FindOne(new QueryDocument { { "_id", BsonValue.Create(id) } });
 		}
 
 		/// <summary>
@@ -62,25 +62,22 @@ namespace AlienForce.NoSql.MongoDB
 		public static string GetMongoPropertyName(Expression<Func<object>> expression)
 		{
 			var body = expression.Body;
-			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
+			if (body.NodeType == ExpressionType.MemberAccess)
 			{
 				// Single member.
 				var mexp = body as MemberExpression;
 				ConstantExpression cexp;
 				if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
 				{
-					if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
+				    if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 					{
 						var mexpinner = mexp.Member;
 						return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 					}
-					else
-					{
-						throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body.ToString()));
-					}
+				    throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
 				}
 			}
-			throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body.ToString()));
+			throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
 		}
 
 		/// <summary>
@@ -104,7 +101,7 @@ namespace AlienForce.NoSql.MongoDB
 		public void SetAndUnset(MongoServer mongo, BsonDocument toSet, BsonDocument unSet)
 		{
 		    mongo.GetCollection<T>().Update(
-		        GetIdSelector(), new UpdateDocument()
+		        GetIdSelector(), new UpdateDocument
 		                             {
 		                                 {"$set", toSet},
 		                                 {"$unset", unSet}
@@ -152,7 +149,7 @@ namespace AlienForce.NoSql.MongoDB
 			{
 				using (var writer = BsonWriter.Create(ms))
 				{
-					global::MongoDB.Bson.Serialization.BsonSerializer.Serialize(writer, this);
+					BsonSerializer.Serialize(writer, this);
 					writer.Close();
 					ms.Flush();
 					bson = ms.ToArray();

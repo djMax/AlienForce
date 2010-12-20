@@ -11,7 +11,7 @@ namespace PerfectService
 	/// </summary>
 	internal class HostedService
 	{
-		private ILog mLog = LogManager.GetLogger(typeof(HostedService));
+		private readonly ILog mLog = LogManager.GetLogger(typeof(HostedService));
 
 		private DirectoryInfo _Home;
 		private AppDomain _Domain;
@@ -33,13 +33,16 @@ namespace PerfectService
 			{
 				throw new InvalidProgramException(String.Format("Could not find Service.config file for the service in directory {0}.", assemblies.FullName)); // no config file
 			}
-			_Setup = new AppDomainSetup();
-			_Setup.ApplicationBase = assemblies.FullName;
-			_Setup.ConfigurationFile = fi[0].FullName;
-			_Setup.ShadowCopyFiles = "true";
-			_Setup.ShadowCopyDirectories = assemblies.FullName;
-			_Setup.PrivateBinPath = _Setup.ApplicationBase;
-			_Setup.ApplicationName = assemblies.Name;
+			_Setup = new AppDomainSetup
+			             {
+                             ApplicationName = assemblies.Name,
+			                 ApplicationBase = assemblies.FullName,
+                             PrivateBinPath = assemblies.FullName,
+			                 ConfigurationFile = fi[0].FullName,
+			                 ShadowCopyFiles = "true",
+			                 ShadowCopyDirectories = assemblies.FullName
+			             };
+
 			string fullTypeName = StealTypeName(_Setup);
 			_TypeInfo = fullTypeName.Split(new char[] { ',' }, 2);
 			_Watcher = new FileSystemWatcher(assemblies.FullName, "*.control");
@@ -81,15 +84,17 @@ namespace PerfectService
 			}
 		}
 
-		private string StealTypeName(AppDomainSetup setup)
+		private static string StealTypeName(AppDomainSetup setup)
 		{
-			AppDomainSetup tmpSetup = new AppDomainSetup();
-			tmpSetup.ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;
-			tmpSetup.ApplicationName = setup.ApplicationName + " - Temporary Config Reader";
-			tmpSetup.PrivateBinPath = AppDomain.CurrentDomain.SetupInformation.PrivateBinPath;
-			tmpSetup.ConfigurationFile = setup.ConfigurationFile;
-			AppDomain tmpDomain = AppDomain.CreateDomain(setup.ApplicationName, null, tmpSetup);
-			BodySnatcher b = (BodySnatcher)tmpDomain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(BodySnatcher).FullName);
+			var tmpSetup = new AppDomainSetup
+			                   {
+			                       ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase,
+			                       ApplicationName = setup.ApplicationName + " - Temporary Config Reader",
+			                       PrivateBinPath = AppDomain.CurrentDomain.SetupInformation.PrivateBinPath,
+			                       ConfigurationFile = setup.ConfigurationFile
+			                   };
+		    var tmpDomain = AppDomain.CreateDomain(setup.ApplicationName, null, tmpSetup);
+			var b = (BodySnatcher)tmpDomain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(BodySnatcher).FullName);
 			string tn = b.GetSettings();
 			AppDomain.Unload(tmpDomain);
 			return tn;
@@ -100,7 +105,7 @@ namespace PerfectService
 			get
 			{
 				FileInfo[] fi = _Home.GetFiles("nostart.control");
-				return (fi == null || fi.Length == 0);
+				return (fi.Length == 0);
 			}
 		}
 
@@ -115,8 +120,8 @@ namespace PerfectService
 		{
 			if (_Domain != null)
 			{
-				EventWaitHandle shutdown = _Domain.GetData("ShutdownEvent") as EventWaitHandle;
-				EventWaitHandle shutdownAck = _Domain.GetData("ShutdownAckEvent") as EventWaitHandle;
+				var shutdown = _Domain.GetData("ShutdownEvent") as EventWaitHandle;
+				var shutdownAck = _Domain.GetData("ShutdownAckEvent") as EventWaitHandle;
 				if (shutdown != null)
 				{
 					int msecTimeout = 10000;

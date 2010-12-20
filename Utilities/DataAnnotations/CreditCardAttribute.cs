@@ -1,8 +1,5 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Linq;
-using System.Text.RegularExpressions;
 using AlienForce.Utilities.Billing;
 
 namespace AlienForce.Utilities.DataAnnotations
@@ -10,9 +7,8 @@ namespace AlienForce.Utilities.DataAnnotations
 	public class CreditCardAttribute : ValidationAttribute
 	{
 		public CreditCardAttribute()
-			: base()
 		{
-			ErrorMessageResourceType = AlienForce.Utilities.DataAnnotations.Resources.ResourceResolver.DefaultResourceType;
+			ErrorMessageResourceType = Resources.ResourceResolver.DefaultResourceType;
 		}
 
 		public override bool IsValid(object value)

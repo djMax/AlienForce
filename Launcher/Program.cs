@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using log4net;
 using System.Reflection;
 
@@ -22,7 +19,7 @@ namespace Launcher
 				try
 				{
 					// This gives this process a title in the debugger.
-					System.Windows.Forms.Form mf = new System.Windows.Forms.Form();
+					var mf = new System.Windows.Forms.Form();
 					mf.Height = 0;
 					mf.Width = 0;
 					mf.ShowInTaskbar = false;
@@ -43,13 +40,11 @@ namespace Launcher
 					Console.WriteLine("Usage: Launcher.exe <AssemblyLib> <Class> <other args>");
 				return 0;
 			}
-			Assembly a = null;
+			Assembly a;
 			bool quietFail = false;
-			int argBase = 0;
 			if (args[0] == "-q")
 			{
 				quietFail = true;
-				argBase++;
 			}
 			try
 			{
@@ -127,7 +122,7 @@ namespace Launcher
 				}
 				else
 				{
-					string[] argsNew = new string[args.Length - 2];
+					var argsNew = new string[args.Length - 2];
 					Array.Copy(args, 2, argsNew, 0, argsNew.Length);
 					object res = mi.Invoke(null, new object[] { argsNew });
 					if (res is int)

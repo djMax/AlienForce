@@ -40,7 +40,7 @@ namespace AlienForce.Utilities.Collections
 			{
 				throw new ArgumentNullException("key");
 			}
-			int sum = 0;
+			var sum = 0;
 			foreach (byte cur in key)
 			{
 				sum += cur;

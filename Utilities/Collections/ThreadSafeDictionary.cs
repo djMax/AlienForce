@@ -28,11 +28,10 @@ namespace AlienForce.Utilities.Collections
 	public class ThreadSafeDictionary<TKey, TValue> : IThreadSafeDictionary<TKey, TValue>
 	{
 		//This is the internal dictionary that we are wrapping
-		IDictionary<TKey, TValue> dict = new Dictionary<TKey, TValue>();
+	    readonly IDictionary<TKey, TValue> _dict = new Dictionary<TKey, TValue>();
 
 
-		[NonSerialized]
-		ReaderWriterLockSlim dictionaryLock = ReaderWriterLocks.GetLockInstance(LockRecursionPolicy.NoRecursion); //setup the lock;
+		[NonSerialized] readonly ReaderWriterLockSlim _dictionaryLock = ReaderWriterLocks.GetLockInstance(LockRecursionPolicy.NoRecursion); //setup the lock;
 
 
 		/// <summary>
@@ -41,13 +40,13 @@ namespace AlienForce.Utilities.Collections
 		/// <param name="key">Key to remove</param>
 		public void RemoveSafe(TKey key)
 		{
-			using (new ReadLock(this.dictionaryLock))
+			using (new ReadLock(_dictionaryLock))
 			{
-				if (this.dict.ContainsKey(key))
+				if (_dict.ContainsKey(key))
 				{
-					using (new WriteLock(this.dictionaryLock))
+					using (new WriteLock(_dictionaryLock))
 					{
-						this.dict.Remove(key);
+						_dict.Remove(key);
 					}
 				}
 			}
@@ -61,42 +60,42 @@ namespace AlienForce.Utilities.Collections
 		/// <param name="newValue">New Value</param>
 		public void MergeSafe(TKey key, TValue newValue)
 		{
-			using (new WriteLock(this.dictionaryLock)) // take a writelock immediately since we will always be writing
+			using (new WriteLock(_dictionaryLock)) // take a writelock immediately since we will always be writing
 			{
-				if (this.dict.ContainsKey(key))
+				if (_dict.ContainsKey(key))
 				{
-					this.dict.Remove(key);
+					_dict.Remove(key);
 				}
 
 
-				this.dict.Add(key, newValue);
+				_dict.Add(key, newValue);
 			}
 		}
 
 
 		public virtual bool Remove(TKey key)
 		{
-			using (new WriteLock(this.dictionaryLock))
+			using (new WriteLock(_dictionaryLock))
 			{
-				return this.dict.Remove(key);
+				return _dict.Remove(key);
 			}
 		}
 
 
 		public virtual bool ContainsKey(TKey key)
 		{
-			using (new ReadOnlyLock(this.dictionaryLock))
+			using (new ReadOnlyLock(_dictionaryLock))
 			{
-				return this.dict.ContainsKey(key);
+				return _dict.ContainsKey(key);
 			}
 		}
 
 
 		public virtual bool TryGetValue(TKey key, out TValue value)
 		{
-			using (new ReadOnlyLock(this.dictionaryLock))
+			using (new ReadOnlyLock(_dictionaryLock))
 			{
-				return this.dict.TryGetValue(key, out value);
+				return _dict.TryGetValue(key, out value);
 			}
 		}
 
@@ -105,16 +104,16 @@ namespace AlienForce.Utilities.Collections
 		{
 			get
 			{
-				using (new ReadOnlyLock(this.dictionaryLock))
+				using (new ReadOnlyLock(_dictionaryLock))
 				{
-					return this.dict[key];
+					return _dict[key];
 				}
 			}
 			set
 			{
-				using (new WriteLock(this.dictionaryLock))
+				using (new WriteLock(_dictionaryLock))
 				{
-					this.dict[key] = value;
+					_dict[key] = value;
 				}
 			}
 		}
@@ -124,9 +123,9 @@ namespace AlienForce.Utilities.Collections
 		{
 			get
 			{
-				using (new ReadOnlyLock(this.dictionaryLock))
+				using (new ReadOnlyLock(_dictionaryLock))
 				{
-					return new List<TKey>(this.dict.Keys);
+					return new List<TKey>(_dict.Keys);
 				}
 			}
 		}
@@ -136,9 +135,9 @@ namespace AlienForce.Utilities.Collections
 		{
 			get
 			{
-				using (new ReadOnlyLock(this.dictionaryLock))
+				using (new ReadOnlyLock(_dictionaryLock))
 				{
-					return new List<TValue>(this.dict.Values);
+					return new List<TValue>(_dict.Values);
 				}
 			}
 		}
@@ -146,9 +145,9 @@ namespace AlienForce.Utilities.Collections
 
 		public virtual void Clear()
 		{
-			using (new WriteLock(this.dictionaryLock))
+			using (new WriteLock(_dictionaryLock))
 			{
-				this.dict.Clear();
+				_dict.Clear();
 			}
 		}
 
@@ -157,9 +156,9 @@ namespace AlienForce.Utilities.Collections
 		{
 			get
 			{
-				using (new ReadOnlyLock(this.dictionaryLock))
+				using (new ReadOnlyLock(_dictionaryLock))
 				{
-					return this.dict.Count;
+					return _dict.Count;
 				}
 			}
 		}
@@ -167,45 +166,45 @@ namespace AlienForce.Utilities.Collections
 
 		public virtual bool Contains(KeyValuePair<TKey, TValue> item)
 		{
-			using (new ReadOnlyLock(this.dictionaryLock))
+			using (new ReadOnlyLock(_dictionaryLock))
 			{
-				return this.dict.Contains(item);
+				return _dict.Contains(item);
 			}
 		}
 
 
 		public virtual void Add(KeyValuePair<TKey, TValue> item)
 		{
-			using (new WriteLock(this.dictionaryLock))
+			using (new WriteLock(_dictionaryLock))
 			{
-				this.dict.Add(item);
+				_dict.Add(item);
 			}
 		}
 
 
 		public virtual void Add(TKey key, TValue value)
 		{
-			using (new WriteLock(this.dictionaryLock))
+			using (new WriteLock(_dictionaryLock))
 			{
-				this.dict.Add(key, value);
+				_dict.Add(key, value);
 			}
 		}
 
 
 		public virtual bool Remove(KeyValuePair<TKey, TValue> item)
 		{
-			using (new WriteLock(this.dictionaryLock))
+			using (new WriteLock(_dictionaryLock))
 			{
-				return this.dict.Remove(item);
+				return _dict.Remove(item);
 			}
 		}
 
 
 		public virtual void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
 		{
-			using (new ReadOnlyLock(this.dictionaryLock))
+			using (new ReadOnlyLock(_dictionaryLock))
 			{
-				this.dict.CopyTo(array, arrayIndex);
+				_dict.CopyTo(array, arrayIndex);
 			}
 		}
 
@@ -214,9 +213,9 @@ namespace AlienForce.Utilities.Collections
 		{
 			get
 			{
-				using (new ReadOnlyLock(this.dictionaryLock))
+				using (new ReadOnlyLock(_dictionaryLock))
 				{
-					return this.dict.IsReadOnly;
+					return _dict.IsReadOnly;
 				}
 			}
 		}

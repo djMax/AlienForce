@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Web;
 using System.IO;
 
@@ -26,7 +23,7 @@ namespace AlienForce.Utilities.Logging
 		/// </summary>
 		public static string LogConfigurationFile = "log4net.config";
 
-		private bool _Initialized;
+		private bool _initialized;
 
 		/// <summary>
 		/// Initializes this LogFramework.  This method should only be called once at the start of the application.
@@ -47,7 +44,7 @@ namespace AlienForce.Utilities.Logging
 			{
 				log4net.Config.XmlConfigurator.Configure();
 			}
-			_Initialized = true;
+			_initialized = true;
 		}
 
 		/// <summary>
@@ -55,7 +52,7 @@ namespace AlienForce.Utilities.Logging
 		/// </summary>
 		public virtual bool Initialized
 		{
-			get { return _Initialized; }
+			get { return _initialized; }
 		}
 
 		/// <summary>

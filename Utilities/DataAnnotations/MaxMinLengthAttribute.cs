@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using AlienForce.Utilities.DataAnnotations.Resources;
+﻿using AlienForce.Utilities.DataAnnotations.Resources;
 
 namespace AlienForce.Utilities.DataAnnotations
 {
@@ -19,7 +15,7 @@ namespace AlienForce.Utilities.DataAnnotations
 		public MinLengthAttribute(int len)
 			: base(int.MaxValue)
 		{
-			this.MinimumLength = len;
+			MinimumLength = len;
 		}
 	}
 }

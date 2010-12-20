@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection.Emit;
 
 namespace AlienForce.Utilities.NaturalLanguageSchedules
@@ -23,7 +20,7 @@ namespace AlienForce.Utilities.NaturalLanguageSchedules
 
 		public bool IsMatch(DateTime time)
 		{
-			RuleDayOfWeek day = (RuleDayOfWeek)(1 << (short)time.DayOfWeek);
+			var day = (RuleDayOfWeek)(1 << (short)time.DayOfWeek);
 			short minutes = (short)(time.Hour * 60 + time.Minute);
 			for (int i = 0; i < mNegativeRules.Length; i++)
 			{

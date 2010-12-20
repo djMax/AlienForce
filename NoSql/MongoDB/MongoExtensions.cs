@@ -13,8 +13,8 @@ namespace AlienForce.NoSql.MongoDB
 	public static class MongoExtensions
 	{
 		private static readonly DateTime kBaseTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-		private static readonly long kClockOffset = 0x01b21dd213814000L;
-		private static readonly long kClockMultiplierL = 10000L;
+		private const long kClockOffset = 0x01b21dd213814000L;
+		private const long kClockMultiplierL = 10000L;
 
 		/// <summary>
 		/// Construct an Oid and then replace the time component.  Obviously make sure you know what you're doing here
@@ -25,7 +25,7 @@ namespace AlienForce.NoSql.MongoDB
 		public static ObjectId OidFromTime(this DateTime time)
 		{
 			byte[] exArr = ObjectId.GenerateNewId().ToByteArray();
-			long msecSinceEpoch = (long) time.Subtract(kBaseTime).TotalSeconds;
+			var msecSinceEpoch = (long) time.Subtract(kBaseTime).TotalSeconds;
 			exArr[0] = (byte)((msecSinceEpoch >> 24) & 0xFF);
 			exArr[1] = (byte)((msecSinceEpoch >> 16) & 0xFF);
 			exArr[2] = (byte)((msecSinceEpoch >> 8) & 0xFF);
@@ -50,14 +50,14 @@ namespace AlienForce.NoSql.MongoDB
 			// 6-7 - bytes 7-8 of clock, big endian, top 4 bits of byte 7 masked off
 			// 8-9 - Clock sequence
 			// 10-15 - ethernet MAC
-			long msecSinceEpoch = (((long)arr[0]) << 24) + (arr[1] << 16) + (arr[2] << 8) + arr[3];
+			var msecSinceEpoch = (((long)arr[0]) << 24) + (arr[1] << 16) + (arr[2] << 8) + arr[3];
 			msecSinceEpoch += (((long)arr[4]) << 40) + (((long)arr[5]) << 32) +
 				((((long)arr[6]) & 0x0F) << 56) + (((long)arr[7]) << 48);
 			msecSinceEpoch -= kClockOffset;
 			msecSinceEpoch /= kClockMultiplierL;
 
-			byte[] oid = new byte[12];
-			uint secSinceEpoch = (uint)(msecSinceEpoch / 1000);
+			var oid = new byte[12];
+			var secSinceEpoch = (uint)(msecSinceEpoch / 1000);
 			oid[0] = (byte)((secSinceEpoch >> 24) & 0xFF);
 			oid[1] = (byte)((secSinceEpoch >> 16) & 0xFF);
 			oid[2] = (byte)((secSinceEpoch >> 8) & 0xFF);
@@ -77,7 +77,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="expression"></param>
 		public static T AddProperty<T>(this T doc, Expression<Func<object>> expression) where T : BsonDocument
 		{
-			return AddProperty<T>(doc, expression, 1);
+			return AddProperty(doc, expression, 1);
 		}
 
 		/// <summary>
@@ -90,7 +90,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <returns></returns>
 		public static T AddProperty<T>(this T doc, Expression<Func<object>> expression, object value) where T : BsonDocument
 		{
-			return doc.AddProperty<T>(expression, null, value);
+			return doc.AddProperty(expression, null, value);
 		}
 
 		/// <summary>
@@ -109,9 +109,9 @@ namespace AlienForce.NoSql.MongoDB
 			var body = expression.Body;
 			if (body.NodeType == ExpressionType.Convert)
 			{
-				body = ((System.Linq.Expressions.UnaryExpression)body).Operand;
+				body = ((UnaryExpression)body).Operand;
 			}
-			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
+			if (body.NodeType == ExpressionType.MemberAccess)
 			{
 				// Single member.
 				var mexp = body as MemberExpression;
@@ -133,7 +133,7 @@ namespace AlienForce.NoSql.MongoDB
 					return doc;
 				}
 			}
-			throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body.ToString()));
+			throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
 		}
 
 		/// <summary>
@@ -145,7 +145,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <returns></returns>
 		public static T AddPropertyIfNotNull<T>(this T doc, Expression<Func<object>> expression, object value) where T : BsonDocument
 		{
-			return AddPropertyIf<T>(doc, expression, value != null, value);
+			return AddPropertyIf(doc, expression, value != null, value);
 		}
 
 		/// <summary>
@@ -158,7 +158,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// <returns></returns>
 		public static T AddPropertyIf<T>(this T doc, Expression<Func<object>> expression, bool shouldAdd, object value) where T : BsonDocument
 		{
-		    return shouldAdd ? AddProperty<T>(doc, expression, value) : doc;
+		    return shouldAdd ? AddProperty(doc, expression, value) : doc;
 		}
 
 	    public static T AddIfNotNull<T>(this T doc, string key, object value) where T : BsonDocument
@@ -212,21 +212,22 @@ namespace AlienForce.NoSql.MongoDB
 			return new KeyValuePair<string, string>(ma.Database, ma.Collection);
 		}
 
-		/// <summary>
-		/// Get the Mongo property name for a given field.  The expression should be simple, such as
-		/// GetMongoPropertyName(() => myObject.Property) or a nested property such as
-		/// GetMongoPropertyName(() => myObject.Subobject.Property)
-		/// </summary>
-		/// <param name="expression"></param>
-		/// <returns></returns>
-		public static string GetMongoPropertyName(this MongoServer unused, Expression<Func<object>> expression)
+	    /// <summary>
+	    /// Get the Mongo property name for a given field.  The expression should be simple, such as
+	    /// GetMongoPropertyName(() => myObject.Property) or a nested property such as
+	    /// GetMongoPropertyName(() => myObject.Subobject.Property)
+	    /// </summary>
+	    /// <param name="unused"></param>
+	    /// <param name="expression"></param>
+	    /// <returns></returns>
+	    public static string GetMongoPropertyName(this MongoServer unused, Expression<Func<object>> expression)
 		{
 			var body = expression.Body;
 			if (body.NodeType == ExpressionType.Convert)
 			{
-				body = ((System.Linq.Expressions.UnaryExpression)body).Operand;
+				body = ((UnaryExpression)body).Operand;
 			}
-			if (body.NodeType == System.Linq.Expressions.ExpressionType.MemberAccess)
+			if (body.NodeType == ExpressionType.MemberAccess)
 			{
 				// Single member.
 				var mexp = body as MemberExpression;
@@ -235,8 +236,13 @@ namespace AlienForce.NoSql.MongoDB
 					return BuildName(mexp, body);
 				}
 			}
-			throw new InvalidOperationException(String.Format("GetMongoPropertyName only allows field or property access, such as '() => obj.Field1' (found {0})", body.ToString()));
+			throw new InvalidOperationException(String.Format("GetMongoPropertyName only allows field or property access, such as '() => obj.Field1' (found {0})", body));
 		}
+
+        public static BsonMemberMap GetAnyMemberMap(this BsonClassMap bsonClassMap, string memberName)
+        {
+            return ((List<BsonMemberMap>)bsonClassMap.MemberMaps).Find(m => m.MemberName == memberName);
+        }
 
 		static string BuildName(MemberExpression mexp, Expression body)
 		{
@@ -256,20 +262,20 @@ namespace AlienForce.NoSql.MongoDB
 				var mexpinner = mexp.Member;
 				return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 			}
-			else if (mexp.NodeType == ExpressionType.MemberAccess && (minn = ((MemberExpression)mexp.Expression as MemberExpression)) != null)
-			{
-				var mexpinner = mexp.Member;
-				var od = BsonClassMap.LookupClassMap(mexp.Expression.Type);
-				var topName = BuildName(minn, body);
-				if (topName != null)
-				{
-					return String.Concat(BuildName(minn, body), ".", od.GetAnyMemberMap(mexpinner.Name).ElementName);
-				}
-				return String.Concat(od.GetAnyMemberMap(mexpinner.Name).ElementName);
-			}
 			else
 			{
-				throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body.ToString()));
+			    if (mexp.NodeType == ExpressionType.MemberAccess && (minn = ((MemberExpression)mexp.Expression as MemberExpression)) != null)
+			    {
+			        var mexpinner = mexp.Member;
+			        var od = BsonClassMap.LookupClassMap(mexp.Expression.Type);
+			        var topName = BuildName(minn, body);
+			        if (topName != null)
+			        {
+			            return String.Concat(BuildName(minn, body), ".", od.GetAnyMemberMap(mexpinner.Name).ElementName);
+			        }
+			        return String.Concat(od.GetAnyMemberMap(mexpinner.Name).ElementName);
+			    }
+			    throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
 			}
 		}
 

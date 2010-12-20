@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace AlienForce.Utilities.Logging
 {
@@ -10,7 +7,7 @@ namespace AlienForce.Utilities.Logging
 	/// </summary>
 	public class Log4NetLogger : ILog
 	{
-		private log4net.ILog _Log;
+		private readonly log4net.ILog _Log;
 
 		/// <summary>
 		/// Construct a BenTen logger for a log4net logger

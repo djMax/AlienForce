@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.ComponentModel;
@@ -56,7 +54,7 @@ namespace AlienForce.Utilities.Billing
 			AsEntered = asEntered;
 			if (asEntered != null)
 			{
-				StringBuilder sb = new StringBuilder(asEntered.Length);
+				var sb = new StringBuilder(asEntered.Length);
 				foreach (char c in asEntered)
 				{
 					// Whitespace and - are allowed punctuation, others should make this invalid.
@@ -80,7 +78,7 @@ namespace AlienForce.Utilities.Billing
 
 		private void Validate(string cleanNumber)
 		{
-			byte[] number = new byte[16]; // number to validate
+			var number = new byte[16]; // number to validate
 
 			// Remove non-digits
 			if (cleanNumber.Length > 16)
@@ -89,14 +87,14 @@ namespace AlienForce.Utilities.Billing
 				return;
 			}
 
-			int len = cleanNumber.Length;
+			var len = cleanNumber.Length;
 			for (int i = 0; i < len; i++)
 			{
 				number[i] = (byte)(cleanNumber[i] - '0');
 			}
 
 			// Use Luhn Algorithm to validate
-			int sum = 0;
+			var sum = 0;
 			for (int i = len - 1; i >= 0; i--)
 			{
 				if (i % 2 == len % 2)
@@ -108,7 +106,7 @@ namespace AlienForce.Utilities.Billing
 					sum += number[i];
 			}
 
-			IsValid = (bool)(sum % 10 == 0);
+			IsValid = sum % 10 == 0;
 			if (IsValid)
 			{
 				switch (cleanNumber[0])
@@ -117,39 +115,39 @@ namespace AlienForce.Utilities.Billing
 					case '2':
 						if (JCBRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.JCB;
+							CardType = CardType.JCB;
 						}
 						return;
 					case '3':
 						if (AmexRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.AmericanExpress;
+							CardType = CardType.AmericanExpress;
 						}
 						else if (DinersRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.DinersClub;
+							CardType = CardType.DinersClub;
 						}
 						else if (JCBRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.JCB;
+							CardType = CardType.JCB;
 						}
 						return;
 					case '4':
 						if (VisaRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.Visa;
+							CardType = CardType.Visa;
 						}
 						return;
 					case '5':
 						if (MCRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.MasterCard;
+							CardType = CardType.MasterCard;
 						}
 						return;
 					case '6':
 						if (DiscoverRE.IsMatch(cleanNumber))
 						{
-							CardType = Billing.CardType.Discover;
+							CardType = CardType.Discover;
 						}
 						return;
 				}
@@ -161,14 +159,10 @@ namespace AlienForce.Utilities.Billing
 	{
 		public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
 		{
-			if (value == null)
-			{
-				return null;
-			}
-			return new CreditCardNumber(value.ToString());
+		    return value == null ? null : new CreditCardNumber(value.ToString());
 		}
 
-		public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+	    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
 		{
 			return true;
 		}
