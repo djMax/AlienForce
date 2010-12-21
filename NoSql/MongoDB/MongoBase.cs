@@ -69,12 +69,12 @@ namespace AlienForce.NoSql.MongoDB
 				ConstantExpression cexp;
 				if (mexp == null || (cexp = mexp.Expression as ConstantExpression) == null)
 				{
-				    if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
+					if (mexp.NodeType == ExpressionType.MemberAccess && (cexp = ((MemberExpression)mexp.Expression).Expression as ConstantExpression) != null)
 					{
 						var mexpinner = mexp.Member;
 						return BsonClassMap.LookupClassMap(mexp.Expression.Type).GetAnyMemberMap(mexpinner.Name).ElementName;
 					}
-				    throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
+					throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
 				}
 			}
 			throw new InvalidOperationException(String.Format("AddProperty only allows field or property access, such as 'new {{ this.Field1, this.Property }}' (found {0})", body));
@@ -84,7 +84,7 @@ namespace AlienForce.NoSql.MongoDB
 		/// Get a document consisting solely of the object id for this instance.
 		/// </summary>
 		/// <returns></returns>
-        public IMongoQuery GetIdSelector()
+		public QueryDocument GetIdSelector()
 		{
 			var od = BsonClassMap.LookupClassMap(typeof(T));
 			return new QueryDocument("_id", BsonValue.Create(od.IdMemberMap.Getter(this)));
@@ -100,8 +100,8 @@ namespace AlienForce.NoSql.MongoDB
 		/// <param name="unSet"></param>
 		public void SetAndUnset(MongoServer mongo, BsonDocument toSet, BsonDocument unSet)
 		{
-		    mongo.GetCollection<T>().Update(
-		        GetIdSelector(), new UpdateDocument
+			mongo.GetCollection<T>().Update(
+					GetIdSelector(), new UpdateDocument
 		                             {
 		                                 {"$set", toSet},
 		                                 {"$unset", unSet}
@@ -113,19 +113,19 @@ namespace AlienForce.NoSql.MongoDB
 		/// selector and adding a $set directive.
 		/// </summary>
 		/// <param name="mongo"></param>
-        /// <param name="toSet"></param>
+		/// <param name="toSet"></param>
 		public void Set(MongoServer mongo, BsonDocument toSet)
 		{
-            mongo.GetCollection<T>().Update(GetIdSelector(), new UpdateDocument("$set", toSet), UpdateFlags.Upsert);
+			mongo.GetCollection<T>().Update(GetIdSelector(), new UpdateDocument("$set", toSet), UpdateFlags.Upsert);
 		}
 
-	    /// <summary>
-	    /// Unset the set of fields in unSet on this object.  Convenience method for getting the id
-	    /// selector and adding an $unset directive.
-	    /// </summary>
-	    /// <param name="mongo"></param>
-	    /// <param name="unSet"></param>
-	    public void Unset(MongoServer mongo, BsonDocument unSet)
+		/// <summary>
+		/// Unset the set of fields in unSet on this object.  Convenience method for getting the id
+		/// selector and adding an $unset directive.
+		/// </summary>
+		/// <param name="mongo"></param>
+		/// <param name="unSet"></param>
+		public void Unset(MongoServer mongo, BsonDocument unSet)
 		{
 			mongo.GetCollection<T>().Update(GetIdSelector(), new UpdateDocument("$unset", unSet), UpdateFlags.Upsert);
 		}
